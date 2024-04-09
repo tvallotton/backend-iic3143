@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  pagepals:
+    container_name: pagepals
+    build:
+      context: .
+      target: prod
+    environment:
+      - PORT=8080
+    ports:
+      - 8080:8080

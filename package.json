@@ -6,8 +6,8 @@
     "main": "src/main.ts",
     "scripts": {
         "dev": "tsx watch src/*",
-        "build": "tsc src/* --outdir dist",
-        "run": ""
+        "build": "tsc",
+        "prod": "node dist/main.js"
     },
     "devDependencies": {
         "@types/express": "^4.17.21",
