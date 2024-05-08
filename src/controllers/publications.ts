@@ -7,12 +7,16 @@ export const getAllPublications = (req: Request, res: Response) => {
         {
             id: 1,
             title: 'Publication 1',
-            content: 'This is the content of publication 1'
+            price: 22000,
+            author: "John Doe",
+            description: "Description of publication 1"
         },
         {
-            id: 2,
+            id: 1,
             title: 'Publication 2',
-            content: 'This is the content of publication 2'
+            price: 15000,
+            author: "John Doe",
+            description: "Description of publication 2"
         }
     ] });
 }
