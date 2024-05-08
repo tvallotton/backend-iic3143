@@ -5,13 +5,14 @@
     "type": "module",
     "main": "src/main.ts",
     "scripts": {
-        "dev": "tsx watch src/*",
+        "dev": "nodemon --exec tsx src/main.ts",
         "build": "tsc",
         "prod": "node dist/main.js"
     },
     "devDependencies": {
         "@types/express": "^4.17.21",
         "nodemon": "^3.1.0",
+        "ts-node": "^10.9.2",
         "tsx": "^4.7.2",
         "typescript": "^5.2.2"
     },
