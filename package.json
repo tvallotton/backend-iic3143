@@ -16,6 +16,7 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
-        "express": "^4.19.2"
+        "express": "^4.19.2",
+        "sequelize": "^6.37.3"
     }
 }
