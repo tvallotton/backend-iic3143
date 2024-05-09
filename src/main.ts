@@ -1,10 +1,17 @@
 import express from "express";
+import cors from "cors";
 import { env } from "process";
 import publicationsRouter from "./routes/publications";
 
 
 const app = express();
 const port = env["PORT"] || 8080;
+
+const corsOptions = {
+    origin: "http://localhost:5173"
+};
+
+app.use(cors(corsOptions));
 
 app.get('/', (_req, res) => {
     res.send('Hello World!');
