@@ -4,6 +4,8 @@ services:
     build:
       context: .
       target: dev
+    environment: 
+      - NODE_ENV=development
     volumes:
       - ./:/home/app
       - /home/app/node_modules
