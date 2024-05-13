@@ -7,6 +7,7 @@ CREATE TABLE "User" (
     "lastName" TEXT NOT NULL DEFAULT '',
     "birthday" TIMESTAMP(3),
     "isAdmin" BOOLEAN NOT NULL DEFAULT false,
+    "isValidated" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
