@@ -2,6 +2,9 @@ import express from "express";
 import cors from "cors";
 import { env } from "process";
 import publicationsRouter from "./publications/routes";
+import user from "./user/controller";
+
+
 
 
 const app = express();
@@ -13,11 +16,14 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.get('/', (_req, res) => {
-    res.send('Hello World!');
+app.use("/", express.json());
+app.use("/user", user);
+app.use('/publications', publicationsRouter);
+
+app.get("/", (_req, res) => {
+    res.send("Hello Worlds!");
 });
 
-app.use('/publications', publicationsRouter);
 
 app.listen(port, () => {
     console.log(`Listening at http://127.0.0.1:${port}`);
