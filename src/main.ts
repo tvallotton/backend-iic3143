@@ -4,9 +4,6 @@ import { env } from "process";
 import publicationsRouter from "./publications/routes";
 import user from "./user/controller";
 
-
-
-
 const app = express();
 const port = env["PORT"] || 8080;
 
