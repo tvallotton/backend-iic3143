@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllPublications, getPublicationById, createPublication, updatePublication, deletePublication } from '../controllers/publications';
+import { getAllPublications, getPublicationById, createPublication, updatePublication, deletePublication } from './controller';
 
 const router = express.Router();
 

@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { env } from "process";
-import publicationsRouter from "./routes/publications";
+import publicationsRouter from "./publications/routes";
 
 
 const app = express();
