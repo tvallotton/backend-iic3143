@@ -20,7 +20,21 @@ model User {
     name        String    @default("")
     lastName    String    @default("")
     birthday    DateTime?
+    publications Publication[]
     isAdmin     Boolean   @default(false)
     isValidated Boolean   @default(false)
     createdAt   DateTime  @default(now())
+}
+
+model Publication {
+    id          Int       @id @default(autoincrement())
+    title       String
+    price       Int
+    author      String
+    description String
+    image       String
+    owner       User      @relation(fields: [ownerId], references: [id])
+    ownerId     Int
+    createdAt   DateTime  @default(now())
+    updatedAt DateTime @updatedAt
 }

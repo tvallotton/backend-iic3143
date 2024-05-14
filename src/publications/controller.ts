@@ -1,40 +1,36 @@
 import { Request, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // Define your controller methods here
-export const getAllPublications = (req: Request, res: Response) => {
-    // dummy response
-    res.json({ data: [
-        {
-            id: 1,
-            title: 'Publication 1',
-            price: 22000,
-            author: "John Doe",
-            description: "Description of publication 1",
-            image: "https://via.placeholder.com/150"
-        },
-        {
-            id: 1,
-            title: 'Publication 2',
-            price: 15000,
-            author: "John Doe",
-            description: "Description of publication 2",
-            image: "https://via.placeholder.com/150"
-        }
-    ] });
+export const getAllPublications = (_req: Request, res: Response) => {
+    // Logic to fetch all publications from the database
+    // Return the publications as a response
+    prisma.publication.findMany().then((publications) => {
+        res.json(publications);
+    }).catch((error) => {
+        res.json({ error: error.message });
+    });
 }
 
 export const getPublicationById = (req: Request, res: Response) => {
     // Logic to fetch a publication by its ID from the database
     // Return the publication as a response
-    // dummy response
-    res.json({ data: {
-        id: 1,
-        title: 'Aquí empieza todo',
-        price: 15000,
-        author: "Jennifer Niven",
-        description: "También se intercambia por\n\n - Libros de ciencia ficción\n - Otros libros de Jeniffer Niven\n - Dune parte 1",
-        image: "https://laesquinadobladablog.wordpress.com/wp-content/uploads/2017/07/img_20170720_1838111.jpg?w=840"
-    } });
+    const id = parseInt(req.params.id);
+    prisma.publication.findUnique({
+        where: {
+            id: id
+        }
+    }).then((publication) => {
+        if (publication) {
+            res.json(publication);
+        } else {
+            res.json({ error: "Publication not found" });
+        }
+    }).catch((error) => {
+        res.json({ error: error.message });
+    });
 };
 
 export const createPublication = (req: Request, res: Response) => {
