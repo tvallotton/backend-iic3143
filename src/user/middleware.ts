@@ -3,7 +3,7 @@ import { Response, NextFunction, Request } from "express";
 import jwt from "jsonwebtoken";
 import process from "process";
 
-export const JWT_SECRET = process.env["JWT_SECRET"] || Math.random()+"";
+export const JWT_SECRET = process.env["JWT_SECRET"] || Math.random() + "";
 
 
 const prisma = new PrismaClient();

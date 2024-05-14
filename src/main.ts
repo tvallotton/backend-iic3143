@@ -2,7 +2,7 @@ import express from "express";
 import { env } from "process";
 import user from "./user/controller";
 
-console.log(env);
+
 
 
 const app = express();

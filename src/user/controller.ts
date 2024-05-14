@@ -1,9 +1,12 @@
 import { PrismaClient, User } from "@prisma/client";
 import { Router } from "express";
-import * as jwt from "jsonwebtoken";
+
+import jwt from "jsonwebtoken";
 import argon2 from "argon2";
 import { JWT_SECRET, user } from "./middleware";
 import errors from "../errors";
+
+
 
 import nodemailer from "nodemailer";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
@@ -18,7 +21,7 @@ const MAIL_USER = process.env["MAIL_USER"];
 const MAIL_PASS = process.env["MAIL_PASS"];
 const HOST = process.env["HOST"] || "http://localhost:5173";
 const transporter = nodemailer.createTransport({
-    service: "gmail",
+    service: process.env["MAIL_SERVICE"],
     auth: {
         user: MAIL_USER,
         pass: MAIL_PASS,
@@ -133,7 +136,9 @@ router.post("/", async (req, res) => {
             html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/validate?token=${token}>aquí</a></p>`,
         }, function (err: any) {
             if (err) {
+                console.log(err);
                 res.status(500).json(errors.EMAIL_COULD_NOT_BE_SENT);
+                prisma.user.delete({ where: { id: user.id } });
             } else {
                 res.status(201).json({ status: "success", user: created });
             }
@@ -152,35 +157,8 @@ router.post("/", async (req, res) => {
 });
 
 /**
- * @swagger
- * /user/login:
- *     post: 
  *      description: Logs in to user account
- *      consumes: 
- *          - application/json
- *      requestBody:
- *          required: true
- *          content: 
- *              application/json: 
- *                  schema: 
- *                      $ref: '#/components/schemas/UserInput'               
- *      responses: 
- *          '200': 
- *              description: Responds with the `"x-access-token"`.
- *              content: 
- *                  application/json: 
- *                      schema:
- *                          $ref: '#/components/schemas/Token'
- *          '401': 
- *              description: Invalid credentials.
- *              content: 
- *                  application/json: 
- *                      schema:
- *                          $ref: '#/components/schemas/Error'
- *          '403':
- *               description: User is not validated.
- *          '500':
- *               description: Internal server error.
+ *      
  *              
  */
 router.post("/login", async (req, res) => {
@@ -203,7 +181,7 @@ router.post("/login", async (req, res) => {
         transporter.sendMail({
             to: email,
             from: MAIL_USER,
-            subject: "Autentificacion Sibico",
+            subject: "Autentificacion Pagepals",
             html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/validate?token=${token}>aquí</a></p>`,
         }, (err: unknown) => {
             if (err) console.log(err);
@@ -218,8 +196,8 @@ router.post("/login", async (req, res) => {
         return;
     }
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "48h" });
-    res.setHeader("x-access-token", token);
-    res.json({ status: "success", "x-access-token": token, });
+    res.setHeader("authorization", token);
+    res.json({ status: "success", "authorization": token, });
 });
 
 /**
