@@ -15,16 +15,21 @@ export const getAllPublications = (_req: Request, res: Response) => {
 }
 
 export const getPublicationById = (req: Request, res: Response) => {
-    // Logic to fetch a publication by its ID from the database
-    // Return the publication as a response
     const id = parseInt(req.params.id);
     prisma.publication.findUnique({
         where: {
             id: id
+        },
+        include: {
+            owner: true
         }
     }).then((publication) => {
         if (publication) {
-            res.json(publication);
+            const response = {
+                ...publication,
+                owner: publication.owner.name
+            };
+            res.json(response);
         } else {
             res.json({ error: "Publication not found" });
         }
