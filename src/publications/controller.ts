@@ -46,9 +46,32 @@ export const getPublicationById = (req: Request, res: Response) => {
 };
 
 export const createPublication = (req: Request, res: Response) => {
-    // Logic to create a new publication in the database
+    // Logic to create a publication in the database
     // Return the created publication as a response
+    const { title, price, author, description, ownerId, image} = req.body;
+    prisma.publication.create({
+        data: {
+            title: title,
+            price: price,
+            author: author,
+            description: description,
+            ownerId: ownerId,
+            image: image
+        }
+    }).then((publication) => {
+        res.json(publication);
+    }
+    ).catch((error) => {
+        res.json({ error: error.message });
+    });
 };
+
+export const autocompleteData = (req: Request, res: Response) => {
+    return res.json({ 
+        author: "J.K. Rowling",
+        description: "Harry is a little boy wizard bla bla bla"
+     });
+}
 
 export const updatePublication = (req: Request, res: Response) => {
     // Logic to update a publication in the database

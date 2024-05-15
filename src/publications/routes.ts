@@ -1,10 +1,13 @@
 import express from 'express';
-import { getAllPublications, getPublicationById, createPublication, updatePublication, deletePublication } from './controller';
+import { getAllPublications, getPublicationById, createPublication, updatePublication, deletePublication, autocompleteData } from './controller';
 
 const router = express.Router();
 
 // GET /publications - Get all publications
 router.get('/', getAllPublications);
+
+//GET /publications/autocomplete 
+router.get('/autocomplete', autocompleteData);
 
 // GET /publications/:id - Get a publication by its ID
 router.get('/:id', getPublicationById);
