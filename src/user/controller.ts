@@ -175,22 +175,22 @@ router.post("/login", async (req, res) => {
         res.json(errors.UNREGISTERED_USER);
         return;
     }
-    if (!user.isVerified) {
-        res.status(403);
-        res.json(errors.UNVALIDATED);
-        const token = jwt.sign({ userId: user.id, }, JWT_SECRET, { expiresIn: "1h" });
+    // if (!user.isVerified) {
+    //     res.status(403);
+    //     res.json(errors.UNVALIDATED);
+    //     const token = jwt.sign({ userId: user.id, }, JWT_SECRET, { expiresIn: "1h" });
 
-        transporter.sendMail({
-            to: email,
-            from: MAIL_USER,
-            subject: "Autentificacion Pagepals",
-            html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/verify?token=${token}>aquí</a></p>`,
-        }, (err: unknown) => {
-            if (err) console.log("err", err);
+    //     transporter.sendMail({
+    //         to: email,
+    //         from: MAIL_USER,
+    //         subject: "Autentificacion Pagepals",
+    //         html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/verify?token=${token}>aquí</a></p>`,
+    //     }, (err: unknown) => {
+    //         if (err) console.log("err", err);
 
-        });
-        return;
-    }
+    //     });
+    //     return;
+    // }
 
     const isCorrect = await argon2.verify(user.password, password);
     if (!isCorrect) {
