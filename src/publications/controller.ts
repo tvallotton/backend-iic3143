@@ -3,13 +3,20 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Define your controller methods here
 export const getAllPublications = (_req: Request, res: Response) => {
-    // Logic to fetch all publications from the database
-    // Return the publications as a response
-    prisma.publication.findMany().then((publications) => {
+    prisma.publication.findMany({
+        include: {
+            owner: {
+                select: {
+                    name: true, // Only select the name field
+                },
+            },
+        },
+    })
+    .then((publications) => {
         res.json(publications);
-    }).catch((error) => {
+    })
+    .catch((error) => {
         res.json({ error: error.message });
     });
 }
