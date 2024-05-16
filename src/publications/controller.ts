@@ -48,15 +48,35 @@ export const getPublicationById = (req: Request, res: Response) => {
 export const createPublication = (req: Request, res: Response) => {
     // Logic to create a publication in the database
     // Return the created publication as a response
-    const { title, price, author, description, ownerId, image} = req.body;
+    const { 
+        title, 
+        author, 
+        language,
+        genre,
+        state,
+        description, 
+        type,
+        price,
+        image,
+        booksOfInterest,
+        bookId,
+        ownerId
+    } = req.body;
+
     prisma.publication.create({
         data: {
             title: title,
-            price: price,
             author: author,
+            language: language,
+            genre: genre,
+            state: state,
             description: description,
-            ownerId: ownerId,
-            image: image
+            type: type,
+            price: price === "" ? 0 : price,
+            image: image,
+            booksOfInterest: booksOfInterest,
+            bookId: bookId,
+            ownerId: ownerId
         }
     }).then((publication) => {
         res.json(publication);
