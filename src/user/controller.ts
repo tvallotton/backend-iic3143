@@ -21,13 +21,14 @@ const MAIL_USER = process.env["MAIL_USER"];
 const MAIL_PASS = process.env["MAIL_PASS"];
 const HOST = process.env["HOST"] || "http://localhost:5173";
 const transporter = nodemailer.createTransport({
-    service: process.env["MAIL_SERVICE"],
+    service: "hotmail",
     auth: {
         user: MAIL_USER,
         pass: MAIL_PASS,
     },
     tls: {
         rejectUnauthorized: false,
+        // ciphers: 'SSLv3'
     }
 });
 
@@ -61,7 +62,7 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
 router.get("/me", user(), async (req, res: any) => {
     const user = req.user;
     delete (user as any)?.password;
-    res.json({ status: "success", user });
+    res.json({ user });
 });
 
 /**
@@ -124,23 +125,23 @@ router.post("/", async (req, res) => {
             res.json(errors.INVALID_EMAIL);
             return;
         }
+        user.isAdmin = false;
+        user.isVerified = false;
         const created = await prisma.user.create({
             data: user
         });
         delete (created as any).password;
         const token = jwt.sign({ userId: created.id, }, JWT_SECRET, { expiresIn: "1h" });
 
+        res.status(201).json({ status: "success", user: created });
         transporter.sendMail({
             to: user.email,
             from: MAIL_USER,
-            html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/validate?token=${token}>aquí</a></p>`,
+            html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/verify?token=${token}>aquí</a></p>`,
         }, function (err: any) {
             if (err) {
                 console.log(err);
-                res.status(500).json(errors.EMAIL_COULD_NOT_BE_SENT);
                 prisma.user.delete({ where: { id: user.id } });
-            } else {
-                res.status(201).json({ status: "success", user: created });
             }
         });
     } catch (e) {
@@ -174,17 +175,19 @@ router.post("/login", async (req, res) => {
         res.json(errors.UNREGISTERED_USER);
         return;
     }
-    if (!user.isValidated) {
+    if (!user.isVerified) {
         res.status(403);
         res.json(errors.UNVALIDATED);
         const token = jwt.sign({ userId: user.id, }, JWT_SECRET, { expiresIn: "1h" });
+
         transporter.sendMail({
             to: email,
             from: MAIL_USER,
             subject: "Autentificacion Pagepals",
-            html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/validate?token=${token}>aquí</a></p>`,
+            html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/verify?token=${token}>aquí</a></p>`,
         }, (err: unknown) => {
-            if (err) console.log(err);
+            if (err) console.log("err", err);
+
         });
         return;
     }
@@ -197,7 +200,7 @@ router.post("/login", async (req, res) => {
     }
     const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "48h" });
     res.setHeader("authorization", token);
-    res.json({ status: "success", "authorization": token, });
+    res.json({ "authorization": token, });
 });
 
 /**
@@ -377,7 +380,7 @@ router.post("/change-password", async (req, res) => {
  *          '500':
  *            description: Internal server error.
  */
-router.post("/validate", async (req, res) => {
+router.post("/verify", async (req, res) => {
     const { token } = req.body;
 
     try {
@@ -385,7 +388,7 @@ router.post("/validate", async (req, res) => {
         const { userId: id } = jwt.verify(token || "", JWT_SECRET, {}) as { userId: number; };
 
         const user = await prisma.user.update({
-            data: { isValidated: true, },
+            data: { isVerified: true, },
             where: { id },
         });
         delete (user as any).password;
@@ -393,7 +396,7 @@ router.post("/validate", async (req, res) => {
 
     } catch (e) {
         if (e instanceof jwt.JsonWebTokenError) {
-            res.status(403).json(errors.TOKEN_EXPIRED);
+            res.status(401).json(errors.TOKEN_EXPIRED);
         } else {
 
             res.status(500).json(errors.INTERNAL_SERVER);
