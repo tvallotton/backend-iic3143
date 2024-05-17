@@ -59,10 +59,10 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
  * returns the current authenticated user if any.
  * 
  */
-router.get("/me", user(), async (req, res: any) => {
+router.get("/me", user(), async (req: any, res: any) => {
     const user = req.user;
     delete (user as any)?.password;
-    res.json({ user });
+    res.status(200).json({ user });
 });
 
 /**
@@ -126,7 +126,7 @@ router.post("/", async (req, res) => {
             return;
         }
         user.isAdmin = false;
-        user.isVerified = false;
+        user.isValidated = false;
         const created = await prisma.user.create({
             data: user
         });
@@ -388,7 +388,7 @@ router.post("/verify", async (req, res) => {
         const { userId: id } = jwt.verify(token || "", JWT_SECRET, {}) as { userId: number; };
 
         const user = await prisma.user.update({
-            data: { isVerified: true, },
+            data: { isValidated: true, },
             where: { id },
         });
         delete (user as any).password;
