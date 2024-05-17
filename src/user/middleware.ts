@@ -57,7 +57,9 @@ interface Options {
  */
 export function user(options?: Options) {
     return async function middleware(req: Request, res: Response, next: NextFunction) {
-        const token = req.headers["authorization"];
+        const header = req.headers["authorization"] || "";
+        const regex = header.match(/^Bearer (.+)$/) || [];
+        const token = regex[1];
 
         if (typeof (token) === "string") {
             try {
