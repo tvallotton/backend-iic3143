@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import jwt from "jsonwebtoken";
 
+export const JWT_SECRET = process.env["JWT_SECRET"] || Math.random() + "";
 const prisma = new PrismaClient();
 
 export const getAllPublications = (_req: Request, res: Response) => {
@@ -48,6 +50,13 @@ export const getPublicationById = (req: Request, res: Response) => {
 export const createPublication = (req: Request, res: Response) => {
     // Logic to create a publication in the database
     // Return the created publication as a response
+    var token = req.headers.authorization
+    if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+    }
+    token = token.replace("Bearer ", "");
+    const { id } = jwt.verify(token, JWT_SECRET, {}) as { id: number; };
+
     const { 
         title, 
         author, 
@@ -59,8 +68,7 @@ export const createPublication = (req: Request, res: Response) => {
         price,
         image,
         booksOfInterest,
-        bookId,
-        ownerId
+        bookId
     } = req.body;
 
     prisma.publication.create({
@@ -76,7 +84,7 @@ export const createPublication = (req: Request, res: Response) => {
             image: image,
             booksOfInterest: booksOfInterest,
             bookId: bookId,
-            ownerId: ownerId
+            ownerId: id
         }
     }).then((publication) => {
         res.json(publication);
