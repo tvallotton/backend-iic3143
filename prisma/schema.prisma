@@ -14,13 +14,33 @@ datasource db {
 }
 
 model User {
-    id         Int       @id @default(autoincrement())
-    email      String    @unique
-    password   String
-    name       String    @default("")
-    lastName   String    @default("")
-    birthday   DateTime?
-    isAdmin    Boolean   @default(false)
-    isVerified Boolean   @default(false)
-    createdAt  DateTime  @default(now())
+    id           Int           @id @default(autoincrement())
+    email        String        @unique
+    password     String
+    name         String        @default("")
+    lastName     String        @default("")
+    birthday     DateTime?
+    publications Publication[]
+    isAdmin      Boolean       @default(false)
+    isValidated  Boolean       @default(false)
+    createdAt    DateTime      @default(now())
+}
+
+model Publication {
+    id              Int      @id @default(autoincrement())
+    title           String
+    author          String
+    language        String
+    genre           String
+    state           String
+    description     String
+    type            String
+    price           Int
+    image           String
+    booksOfInterest String[]
+    bookId          String   // usa el id de google books
+    owner           User     @relation(fields: [ownerId], references: [id])
+    ownerId         Int
+    createdAt       DateTime @default(now())
+    updatedAt       DateTime @updatedAt
 }
