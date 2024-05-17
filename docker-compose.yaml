@@ -7,5 +7,24 @@ services:
       target: prod
     environment:
       - PORT=8080
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:postgres@pagepals-db/pagepals?schema=public
+    env_file:
+      - .env
     ports:
       - 8080:8080
+  
+  pagepals-db:
+    container_name: pagepals-db
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=pagepals
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+volumes: 
+  postgres-data: {}
