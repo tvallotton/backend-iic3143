@@ -3,8 +3,8 @@ import { Router } from "express";
 
 import jwt from "jsonwebtoken";
 import argon2 from "argon2";
-import { JWT_SECRET, user } from "./middleware";
-import errors from "../errors";
+import { JWT_SECRET, user } from "./middleware.js";
+import errors from "../errors.js";
 
 
 

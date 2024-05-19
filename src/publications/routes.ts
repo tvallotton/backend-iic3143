@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllPublications, getPublicationById, createPublication, updatePublication, deletePublication, autocompleteData } from './controller';
+import { getAllPublications, getPublicationById, createPublication, updatePublication, deletePublication, autocompleteData } from './controller.js';
 
 const router = express.Router();
 

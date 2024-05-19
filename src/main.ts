@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import { env } from "process";
-import publicationsRouter from "./publications/routes";
-import user from "./user/controller";
+import publicationsRouter from "./publications/routes.js";
+import user from "./user/controller.js";
 
 const app = express();
 const port = env["PORT"] || 8080;
