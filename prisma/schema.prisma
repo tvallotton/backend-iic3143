@@ -14,12 +14,13 @@ datasource db {
 }
 
 model User {
+    // [TODO]: Debería ser UUID
     id           Int           @id @default(autoincrement())
     email        String        @unique
     password     String
     name         String        @default("")
     lastName     String        @default("")
-    birthday     DateTime?
+    birthdate    DateTime?
     publications Publication[]
     isAdmin      Boolean       @default(false)
     isValidated  Boolean       @default(false)
@@ -27,20 +28,22 @@ model User {
 }
 
 model Publication {
+    // [TODO]: Debería ser UUID
     id              Int      @id @default(autoincrement())
     title           String
     author          String
     language        String
     genre           String
-    state           String
+    bookState       String
     description     String
     type            String
     price           Int
     image           String
     booksOfInterest String[]
-    bookId          String   // usa el id de google books
+    bookId          String // usa el id de google books
     owner           User     @relation(fields: [ownerId], references: [id])
     ownerId         Int
+    status          String
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
 }
