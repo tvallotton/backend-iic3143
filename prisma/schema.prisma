@@ -33,17 +33,17 @@ model Publication {
     title           String
     author          String
     language        String
-    genre           String
+    genres          String[] @db.VarChar(64)
     bookState       String
     description     String
     type            String
     price           Int
     image           String
-    booksOfInterest String[]
+    booksOfInterest String
     bookId          String // usa el id de google books
     owner           User     @relation(fields: [ownerId], references: [id])
     ownerId         Int
-    status          String
+    status          String @default("available")
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
 }

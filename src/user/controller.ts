@@ -34,8 +34,8 @@ const transporter = nodemailer.createTransport({
 
 /**
  * returns the queried user models.
- * TODO: exclude password   
- *                  
+ * TODO: exclude password
+ *
  */
 router.get("/", user({ adminsOnly: true }), async (req, res) => {
     const skip = Number(req.query.skip) || undefined;
@@ -55,9 +55,9 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
     res.json({ users });
 });
 
-/** 
+/**
  * returns the current authenticated user if any.
- * 
+ *
  */
 router.get("/me", user(), async (req: any, res: any) => {
     const user = req.user;
@@ -67,7 +67,7 @@ router.get("/me", user(), async (req: any, res: any) => {
 
 /**
  *  Returns the queried user by their id
- *       
+ *
  */
 router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
     const { id } = req.params;
@@ -84,25 +84,25 @@ router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
 /**
  * @swagger
  * /user:
- *     post: 
+ *     post:
  *      description: Creates a new user.
- *      consumes: 
+ *      consumes:
  *          - application/json
  *      requestBody:
  *          required: true
- *          content: 
- *              application/json: 
- *                  schema: 
- *                      $ref: '#/components/schemas/UserInput'            
- *      responses: 
- *          '201': 
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      $ref: '#/components/schemas/UserInput'
+ *      responses:
+ *          '201':
  *              $ref: '#/components/responses/User'
  *          '400':
  *              $ref: '#/components/responses/BadRequest'
  *          '403':
  *              description: User already exist.
- *          '500': 
- *              description: Internal server error. Likely the user is already signed up. 
+ *          '500':
+ *              description: Internal server error. Likely the user is already signed up.
  */
 router.post("/", async (req, res) => {
     try {
@@ -120,7 +120,7 @@ router.post("/", async (req, res) => {
         }
         user.password = await argon2.hash(user.password);
         user.email = user.email.toLowerCase();
-        if (!user.email.match(/^\S+@(?:\S+\.)?(?:puc|uc)\.cl$/)) {
+        if (!user.email.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)) {
             res.status(400);
             res.json(errors.INVALID_EMAIL);
             return;
@@ -151,7 +151,7 @@ router.post("/", async (req, res) => {
             res.json(errors.USER_ALREADY_EXISTS);
             return;
         }
-        console.log(e);
+        console.log("aaaaa");
         res.status(400);
         res.json(errors.UNKOWN_ERROR_CREATE_USER);
     }
@@ -159,8 +159,8 @@ router.post("/", async (req, res) => {
 
 /**
  *      description: Logs in to user account
- *      
- *              
+ *
+ *
  */
 router.post("/login", async (req, res) => {
     let { email, password } = req.body;
@@ -206,25 +206,25 @@ router.post("/login", async (req, res) => {
 /**
  * @swagger
  * /user/{id}/emergency:
- *     post: 
+ *     post:
  *       description: Send a email when a user report emergency/accident.
- *       consumes: 
+ *       consumes:
  *         - application/json
  *       requestBody:
  *         required: true
- *         content: 
- *           application/json: 
- *             schema: 
+ *         content:
+ *           application/json:
+ *             schema:
  *               type: object
- *               properties: 
- *                 tipo: 
+ *               properties:
+ *                 tipo:
  *                   type: string
- *       responses: 
- *          '204': 
+ *       responses:
+ *          '204':
  *              description: Emergency email send correctly
  *          '404':
  *              description: User not found.
- *          '500': 
+ *          '500':
  *              description: Internal server error. Tipicatly the email could not be sent.
  */
 router.post("/:id/emergency", async (req, res) => {
@@ -246,7 +246,7 @@ router.post("/:id/emergency", async (req, res) => {
             cc: user.email,
             from: MAIL_USER,
             subject: `${user.name} ha reportado ${asunto}`,
-            html: `<p>El usuario ${user.email} ha reportado ${asunto}.\n \n \n 
+            html: `<p>El usuario ${user.email} ha reportado ${asunto}.\n \n \n
                 [Datos del usuario]\n \n Nombre: ${user.name} ${user.lastName} \n email:${user.email}\n \n \n`,
         }, function (err: any) {
             if (err) {
@@ -263,28 +263,28 @@ router.post("/:id/emergency", async (req, res) => {
 /**
  * @swagger
  * /user/send-reset-password:
- *     post: 
- *      description: Send email to change forgotten password for user.  
- *      consumes: 
+ *     post:
+ *      description: Send email to change forgotten password for user.
+ *      consumes:
  *          - application/json
  *      requestBody:
  *          required: true
- *          content: 
- *              application/json: 
- *                  schema: 
+ *          content:
+ *              application/json:
+ *                  schema:
  *                      type: object
- *                      properties: 
- *                          email: 
- *                              type: string           
- *      responses: 
- *          '200': 
+ *                      properties:
+ *                          email:
+ *                              type: string
+ *      responses:
+ *          '200':
  *              description: Correct validation of the user
- *          '401': 
+ *          '401':
  *              description: Token is incorrect
  *          '404':
  *              description: User not found.
- *          '500': 
- *              description: Internal server error. Likely the user is already signed up. 
+ *          '500':
+ *              description: Internal server error. Likely the user is already signed up.
  */
 router.post("/send-reset-password", async (req, res) => {
     try {
@@ -318,23 +318,23 @@ router.post("/send-reset-password", async (req, res) => {
 /**
  * @swagger
  * /user/change-password:
- *     post: 
+ *     post:
  *      description: Change forgotten password for user.
- *      consumes: 
+ *      consumes:
  *          - application/json
  *      requestBody:
  *          required: true
- *          content: 
- *              application/json: 
- *                  schema: 
- *                      $ref: '#/components/schemas/ChangePasswordInput'            
- *      responses: 
- *          '200': 
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      $ref: '#/components/schemas/ChangePasswordInput'
+ *      responses:
+ *          '200':
  *              description: Correct validation of the user
- *          '401': 
+ *          '401':
  *              description: Token is incorrect
- *          '500': 
- *              description: Internal server error. Likely the user is already signed up. 
+ *          '500':
+ *              description: Internal server error. Likely the user is already signed up.
  */
 router.post("/change-password", async (req, res) => {
     const { token, password } = req.body;
@@ -358,21 +358,21 @@ router.post("/change-password", async (req, res) => {
 /**
  * @swagger
  * /user/validate/:
- *     post: 
+ *     post:
  *      description: Validate a new user.
- *      consumes: 
+ *      consumes:
  *          - application/json
  *      requestBody:
  *          required: true
- *          content: 
- *              application/json: 
- *                  schema: 
- *                      $ref: '#/components/schemas/TokenInput'            
- *      responses: 
- *          '200': 
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      $ref: '#/components/schemas/TokenInput'
+ *      responses:
+ *          '200':
  *              description: Responds with the user if it succeeds.
  *              content:
- *                  application/json: 
+ *                  application/json:
  *                      schema:
  *                          $ref: '#/components/schemas/User'
  *          '403':
@@ -407,24 +407,24 @@ router.post("/verify", async (req, res) => {
 /**
  * @swagger
  * /user/:
- *     patch: 
+ *     patch:
  *      description: Updates user information.
- *      parameters: 
- *          - $ref: '#/components/parameters/x-access-token' 
- *      consumes: 
+ *      parameters:
+ *          - $ref: '#/components/parameters/x-access-token'
+ *      consumes:
  *          - application/json
  *      requestBody:
  *          required: true
- *          content: 
- *              application/json: 
- *                  schema: 
+ *          content:
+ *              application/json:
+ *                  schema:
  *                      $ref: '#/components/schemas/UserInput'
- *      responses: 
- *          '200': 
+ *      responses:
+ *          '200':
  *              $ref: '#/components/responses/User'
- *          '404': 
+ *          '404':
  *              $ref: '#/components/responses/NotFound'
- *          '401': 
+ *          '401':
  *              $ref: '#/components/responses/Unauthorized'
  *          '403':
  *              description: User is not validated.
@@ -461,19 +461,19 @@ router.patch("/", user(), async (req, res) => {
 /**
  * @swagger
  * /user/{id}:
- *     delete: 
- *      description: Deletes the user. Only admin members can delete users. 
- *      parameters: 
- *        - $ref: '#/components/parameters/userId' 
- *        - $ref: '#/components/parameters/x-access-token' 
- *      responses: 
- *          '200': 
+ *     delete:
+ *      description: Deletes the user. Only admin members can delete users.
+ *      parameters:
+ *        - $ref: '#/components/parameters/userId'
+ *        - $ref: '#/components/parameters/x-access-token'
+ *      responses:
+ *          '200':
  *              $ref: '#/components/responses/User'
- *          '404': 
+ *          '404':
  *              $ref: '#/components/responses/NotFound'
- *          '401': 
+ *          '401':
  *              $ref: '#/components/responses/Unauthorized'
- *          '403': 
+ *          '403':
  *              $ref: '#/components/responses/Forbidden'
  */
 router.delete("/:id", user({ adminsOnly: true }), async (req, res) => {
@@ -496,4 +496,4 @@ router.use((_err: Error, _req: any, res: any, _next: any) => {
     res.status(401).json(errors.UNAUTHORIZED);
 });
 
-export default router; 
+export default router;
