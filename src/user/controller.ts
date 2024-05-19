@@ -118,7 +118,6 @@ router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
 router.post("/", async (req, res) => {
     try {
         const user: User = req.body;
-        console.log(user);
         const pass = user.password;
         const safePass = (
             pass.match(/[A-Z]/) && pass.match(/\d/) &&
