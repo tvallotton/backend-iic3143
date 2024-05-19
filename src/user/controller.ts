@@ -143,7 +143,7 @@ router.post("/", async (req, res) => {
         delete (created as any).password;
         const token = jwt.sign({ userId: created.id, }, JWT_SECRET, { expiresIn: "1h" });
 
-        const htmlContent = loadTemplate('emailTemplate', {
+        const htmlContent = loadTemplate('validateUserTemplate', {
             name: user.name,
             verificationLink: `${HOST}/verify?token=${token}`
         });
