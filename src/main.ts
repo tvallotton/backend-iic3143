@@ -7,11 +7,8 @@ import user from "./user/controller.js";
 const app = express();
 const port = env["PORT"] || 8080;
 
-const corsOptions = {
-    origin: ["pagepals-iic3143.netlify.app", "127.0.0.1:5173"]
-};
 
-app.use(cors(corsOptions));
+app.use(cors());
 
 app.use("/", express.json());
 app.use("/user", user);
