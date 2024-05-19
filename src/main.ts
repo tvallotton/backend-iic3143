@@ -8,7 +8,7 @@ const app = express();
 const port = env["PORT"] || 8080;
 
 const corsOptions = {
-    origin: ["main--pagepals-iic3143.netlify.app", "127.0.0.1:5173"]
+    origin: ["main--pagepals-iic3143.netlify.app", "https://main--pagepals-iic3143.netlify.app", "127.0.0.1:5173"]
 };
 
 app.use(cors(corsOptions));
