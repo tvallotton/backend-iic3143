@@ -6,12 +6,23 @@ import argon2 from "argon2";
 import { JWT_SECRET, user } from "./middleware";
 import errors from "../errors";
 
-
-
 import nodemailer from "nodemailer";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
+import fs from "fs";
 
+interface Replacements {
+    [key: string]: string;
+}
 
+const loadTemplate = (templateName: string, replacements: Replacements): string => {
+    let template: string = fs.readFileSync(`${templateName}.html`, 'utf8');
+
+    Object.keys(replacements).forEach((key: string) => {
+        template = template.replace(new RegExp(`{{${key}}}`, 'g'), replacements[key]);
+    });
+
+    return template;
+};
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -133,11 +144,16 @@ router.post("/", async (req, res) => {
         delete (created as any).password;
         const token = jwt.sign({ userId: created.id, }, JWT_SECRET, { expiresIn: "1h" });
 
+        const htmlContent = loadTemplate('emailTemplate', {
+            name: user.name,
+            verificationLink: `${HOST}/verify?token=${token}`
+        });
+
         res.status(201).json({ status: "success", user: created });
         transporter.sendMail({
             to: user.email,
             from: MAIL_USER,
-            html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/verify?token=${token}>aquí</a></p>`,
+            html: htmlContent,
         }, function (err: any) {
             if (err) {
                 console.log(err);
