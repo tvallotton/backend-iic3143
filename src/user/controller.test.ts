@@ -45,5 +45,5 @@ describe('GET /:id', () => {
     const response = await request(app).get('/user/3').set('Authorization', 'Bearer test_token');
     expect(response.statusCode).toBe(404);
     expect(response.body).toEqual({ message: 'El usuario no fue encontrado.', code: "USER_NOT_FOUND" });
-  });
+  })
 });

@@ -3,7 +3,7 @@ import express, { Express } from 'express';
 import { user } from './middleware';
 
 jest.mock('jsonwebtoken', () => ({
-  verify: jest.fn().mockImplementationOnce(() => ({ id: 1 })),
+  verify: jest.fn(),
 }));
 
 jest.mock('@prisma/client', () => {
@@ -16,7 +16,7 @@ jest.mock('@prisma/client', () => {
       user: {
         findFirst: jest.fn().mockResolvedValue({
           id: 1,
-          isAdmin: true,
+          isAdmin: false,
         }),
       },
     })),
@@ -32,10 +32,16 @@ beforeEach(() => {
     console.log(req.user);
     res.status(200).json({ message: 'Access granted' });
   });
+  app.get('/admin-only', user({ adminsOnly: true }), (req, res) => {
+    console.log(req.user);
+    res.status(200).json({ message: 'Admin only access' });
+  });
 });
 
 describe('authentication middleware', () => {
   it('should allow authorized user access', async () => {
+    const { verify } = require('jsonwebtoken');
+    verify.mockImplementationOnce(() => ({ id: 1 }));
     const response = await request(app).get('/test').set('Authorization', 'Bearer test_token');
     expect(response.statusCode).toBe(200);
     expect(response.body).toEqual({ message: 'Access granted' });
@@ -70,5 +76,17 @@ describe('authentication middleware', () => {
     const response = await request(app).get('/test').set('Authorization', 'Bearer invalid_token');
     expect(response.statusCode).toBe(401);
     expect(response.body).toEqual({ message: 'Su sesión ha expirado' });
+  });
+
+  it('should deny access to non-admin user for admin-only route', async () => {
+    const { verify } = require('jsonwebtoken');
+    verify.mockImplementationOnce(() => ({ id: 1 }));
+    const response = await request(app)
+      .get('/admin-only')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.statusCode).toBe(403);
+    expect(response.body).toEqual({
+      message: 'No tiene permiso para acceder a este recurso.',
+    });
   });
 });
