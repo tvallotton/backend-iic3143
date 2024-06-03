@@ -3,8 +3,8 @@ import { Router } from "express";
 
 import jwt from "jsonwebtoken";
 import argon2 from "argon2";
-import { JWT_SECRET, user } from "./middleware.js";
-import errors from "../errors.js";
+import { JWT_SECRET, user } from "./middleware";
+import errors from "../errors";
 
 import nodemailer from "nodemailer";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
@@ -52,7 +52,6 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
     const skip = Number(req.query.skip) || undefined;
     const take = Number(req.query.take) || undefined;
 
-
     const users = await prisma.user.findMany({
         skip,
         take,
@@ -60,9 +59,6 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
             createdAt: "desc"
         }
     });
-
-
-
     res.json({ users });
 });
 
