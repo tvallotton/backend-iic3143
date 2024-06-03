@@ -8,21 +8,6 @@ import errors from "../errors";
 
 import nodemailer from "nodemailer";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import fs from "fs";
-
-interface Replacements {
-    [key: string]: string;
-}
-
-const loadTemplate = (templateName: string, replacements: Replacements): string => {
-    let template: string = fs.readFileSync(`${templateName}.html`, 'utf8');
-
-    Object.keys(replacements).forEach((key: string) => {
-        template = template.replace(new RegExp(`{{${key}}}`, 'g'), replacements[key]);
-    });
-
-    return template;
-};
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -138,17 +123,11 @@ router.post("/", async (req, res) => {
         });
         delete (created as any).password;
         const token = jwt.sign({ userId: created.id, }, JWT_SECRET, { expiresIn: "1h" });
-
-        const htmlContent = loadTemplate('validateUserTemplate', {
-            name: user.name,
-            verificationLink: `${HOST}/verify?token=${token}`
-        });
-
         res.status(201).json({ status: "success", user: created });
         transporter.sendMail({
             to: user.email,
             from: MAIL_USER,
-            html: htmlContent,
+            html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/verify?token=${token}>aquí</a></p>`,
         }, function (err: any) {
             if (err) {
                 console.log(err);
@@ -162,7 +141,6 @@ router.post("/", async (req, res) => {
             res.json(errors.USER_ALREADY_EXISTS);
             return;
         }
-        console.log("aaaaa");
         res.status(400);
         res.json(errors.UNKOWN_ERROR_CREATE_USER);
     }
@@ -186,22 +164,6 @@ router.post("/login", async (req, res) => {
         res.json(errors.UNREGISTERED_USER);
         return;
     }
-    // if (!user.isVerified) {
-    //     res.status(403);
-    //     res.json(errors.UNVALIDATED);
-    //     const token = jwt.sign({ userId: user.id, }, JWT_SECRET, { expiresIn: "1h" });
-
-    //     transporter.sendMail({
-    //         to: email,
-    //         from: MAIL_USER,
-    //         subject: "Autentificacion Pagepals",
-    //         html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/verify?token=${token}>aquí</a></p>`,
-    //     }, (err: unknown) => {
-    //         if (err) console.log("err", err);
-
-    //     });
-    //     return;
-    // }
 
     const isCorrect = await argon2.verify(user.password, password);
     if (!isCorrect) {
