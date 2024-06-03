@@ -141,36 +141,6 @@ router.post('/login', async (req, res) => {
   res.json({ authorization: token });
 });
 
-router.post('/send-reset-password', async (req, res) => {
-  try {
-    const { email } = req.body;
-    const user = await prisma.user.findFirst({ where: { email } });
-    if (user === null) {
-      res.status(401);
-      res.json(errors.UNREGISTERED_USER);
-      return;
-    }
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' });
-    transporter.sendMail(
-      {
-        to: email,
-        from: MAIL_USER,
-        subject: 'Resetear contraseña Sibico',
-        html: `<p>se ha solicitado restablecer la contraseña de ${user.email}. \n \n Para modificarla ingrese aqui: <a href=${HOST}/reset-password?token=${token}>aquí</a></p>`,
-      },
-      function (err: any) {
-        if (err) {
-          res.status(500).json({ status: 'error', es: 'No se pudo enviar el correo.', en: '' });
-        } else {
-          res.status(200).json({ status: 'success' });
-        }
-      },
-    );
-  } catch {
-    res.status(404).json(errors.USER_NOT_FOUND);
-  }
-});
-
 router.post('/change-password', async (req, res) => {
   const { token, password } = req.body;
   try {
