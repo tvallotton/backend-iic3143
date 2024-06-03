@@ -28,11 +28,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-/**
- * returns the queried user models.
- * TODO: exclude password
- *
- */
+
 router.get("/", user({ adminsOnly: true }), async (req, res) => {
     const skip = Number(req.query.skip) || undefined;
     const take = Number(req.query.take) || undefined;
@@ -47,20 +43,14 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
     res.json({ users });
 });
 
-/**
- * returns the current authenticated user if any.
- *
- */
+
 router.get("/me", user(), async (req: any, res: any) => {
     const user = req.user;
     delete (user as any)?.password;
     res.status(200).json({ user });
 });
 
-/**
- *  Returns the queried user by their id
- *
- */
+
 router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
     const { id } = req.params;
     const user = await prisma.user.findFirst({
@@ -73,29 +63,6 @@ router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
     res.json({ status: "success", user });
 });
 
-/**
- * @swagger
- * /user:
- *     post:
- *      description: Creates a new user.
- *      consumes:
- *          - application/json
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      $ref: '#/components/schemas/UserInput'
- *      responses:
- *          '201':
- *              $ref: '#/components/responses/User'
- *          '400':
- *              $ref: '#/components/responses/BadRequest'
- *          '403':
- *              description: User already exist.
- *          '500':
- *              description: Internal server error. Likely the user is already signed up.
- */
 router.post("/", async (req, res) => {
     try {
         const user: User = req.body;
@@ -146,11 +113,6 @@ router.post("/", async (req, res) => {
     }
 });
 
-/**
- *      description: Logs in to user account
- *
- *
- */
 router.post("/login", async (req, res) => {
     let { email, password } = req.body;
     if (typeof (email) != "string" || typeof (password) != "string") {
@@ -177,32 +139,6 @@ router.post("/login", async (req, res) => {
 });
 
 
-/**
- * @swagger
- * /user/send-reset-password:
- *     post:
- *      description: Send email to change forgotten password for user.
- *      consumes:
- *          - application/json
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      type: object
- *                      properties:
- *                          email:
- *                              type: string
- *      responses:
- *          '200':
- *              description: Correct validation of the user
- *          '401':
- *              description: Token is incorrect
- *          '404':
- *              description: User not found.
- *          '500':
- *              description: Internal server error. Likely the user is already signed up.
- */
 router.post("/send-reset-password", async (req, res) => {
     try {
         const { email } = req.body;
@@ -231,28 +167,6 @@ router.post("/send-reset-password", async (req, res) => {
 
 });
 
-
-/**
- * @swagger
- * /user/change-password:
- *     post:
- *      description: Change forgotten password for user.
- *      consumes:
- *          - application/json
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      $ref: '#/components/schemas/ChangePasswordInput'
- *      responses:
- *          '200':
- *              description: Correct validation of the user
- *          '401':
- *              description: Token is incorrect
- *          '500':
- *              description: Internal server error. Likely the user is already signed up.
- */
 router.post("/change-password", async (req, res) => {
     const { token, password } = req.body;
     try {
@@ -272,31 +186,7 @@ router.post("/change-password", async (req, res) => {
         }
     }
 });
-/**
- * @swagger
- * /user/validate/:
- *     post:
- *      description: Validate a new user.
- *      consumes:
- *          - application/json
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      $ref: '#/components/schemas/TokenInput'
- *      responses:
- *          '200':
- *              description: Responds with the user if it succeeds.
- *              content:
- *                  application/json:
- *                      schema:
- *                          $ref: '#/components/schemas/User'
- *          '403':
- *             description: Invalid token.
- *          '500':
- *            description: Internal server error.
- */
+
 router.post("/verify", async (req, res) => {
     const { token } = req.body;
 
@@ -320,32 +210,6 @@ router.post("/verify", async (req, res) => {
         }
     }
 });
-
-/**
- * @swagger
- * /user/:
- *     patch:
- *      description: Updates user information.
- *      parameters:
- *          - $ref: '#/components/parameters/x-access-token'
- *      consumes:
- *          - application/json
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      $ref: '#/components/schemas/UserInput'
- *      responses:
- *          '200':
- *              $ref: '#/components/responses/User'
- *          '404':
- *              $ref: '#/components/responses/NotFound'
- *          '401':
- *              $ref: '#/components/responses/Unauthorized'
- *          '403':
- *              description: User is not validated.
- */
 
 router.patch("/", user(), async (req, res) => {
     // if you are staff or you are editting your own profile
@@ -375,24 +239,6 @@ router.patch("/", user(), async (req, res) => {
 });
 
 
-/**
- * @swagger
- * /user/{id}:
- *     delete:
- *      description: Deletes the user. Only admin members can delete users.
- *      parameters:
- *        - $ref: '#/components/parameters/userId'
- *        - $ref: '#/components/parameters/x-access-token'
- *      responses:
- *          '200':
- *              $ref: '#/components/responses/User'
- *          '404':
- *              $ref: '#/components/responses/NotFound'
- *          '401':
- *              $ref: '#/components/responses/Unauthorized'
- *          '403':
- *              $ref: '#/components/responses/Forbidden'
- */
 router.delete("/:id", user({ adminsOnly: true }), async (req, res) => {
     const { id } = req.params;
     try {
