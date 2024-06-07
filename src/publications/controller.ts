@@ -172,3 +172,23 @@ export const deletePublication = async (req: Request, res: Response) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+// FILTERS
+
+export const getGenres = async (_req: Request, res: Response) => {
+    try {
+        const genres = await prisma.publication.findMany({
+            distinct: ['genres'],
+            select: {
+                genres: true
+            }
+        });
+
+        const genresList = genres.map(genre => genre.genres).flat();
+        const uniqueGenres = [...new Set(genresList)];
+
+        res.json(uniqueGenres);
+    } catch (error: any) {
+        res.json({ error: error.message });
+    }
+};

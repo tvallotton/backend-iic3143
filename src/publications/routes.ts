@@ -1,7 +1,12 @@
 import express from 'express';
-import { getAllPublications, getPublicationById, createPublication, updatePublication, deletePublication, autocompleteData } from './controller.js';
+import { getAllPublications, getPublicationById, createPublication, updatePublication, deletePublication, autocompleteData, getGenres } from './controller.js';
 
 const router = express.Router();
+
+// FILTERS
+router.get('/genres', getGenres);
+
+// PUBLICATIONS
 
 // GET /publications - Get all publications
 router.get('/', getAllPublications);
