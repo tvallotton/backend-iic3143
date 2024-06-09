@@ -1,6 +1,5 @@
 import { PrismaClient, User } from '@prisma/client';
 import { Router } from 'express';
-
 import jwt from 'jsonwebtoken';
 import argon2 from 'argon2';
 import { JWT_SECRET, user } from './middleware';
@@ -93,7 +92,6 @@ router.post('/', async (req, res) => {
       },
       function (err: any) {
         if (err) {
-          console.log(err);
           prisma.user.delete({ where: { id: user.id } });
         }
       },
@@ -129,7 +127,6 @@ router.post('/login', async (req, res) => {
     res.json(errors.UNREGISTERED_USER);
     return;
   }
-
   const isCorrect = await argon2.verify(user.password, password);
   if (!isCorrect) {
     res.status(401);
@@ -165,9 +162,7 @@ router.post('/verify', async (req, res) => {
   const { token } = req.body;
 
   try {
-    console.log(jwt.verify(token, JWT_SECRET, {}));
     const { userId: id } = jwt.verify(token || '', JWT_SECRET, {}) as { userId: number };
-
     const user = await prisma.user.update({
       data: { isValidated: true },
       where: { id },
