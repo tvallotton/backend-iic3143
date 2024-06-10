@@ -92,13 +92,6 @@ export const createPublication = (req: Request, res: Response) => {
     });
 };
 
-export const autocompleteData = (_req: Request, res: Response) => {
-    return res.json({
-        author: "J.K. Rowling",
-        description: "Harry is a little boy wizard bla bla bla"
-     });
-}
-
 export const updatePublication = async (req: Request, res: Response) => {
     const { id } = req.params;
     const {description, state, type, language, price } = req.body;
