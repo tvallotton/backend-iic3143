@@ -199,7 +199,6 @@ router.patch('/', user(), async (req, res) => {
       res.status(403).json(errors.UNAUTHORIZED);
     }
   } catch (e) {
-    console.log(e);
     res.status(400).json(errors.BAD_REQUEST);
   }
 });

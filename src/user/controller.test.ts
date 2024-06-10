@@ -141,6 +141,28 @@ describe('GET /:id', () => {
   });
 });
 
+describe('DELETE /id', () => {
+  it('should delete the user succesfully', async () => {
+    mockJwtVerify.mockReturnValueOnce({ id: 1 });
+    mockFindFirst.mockResolvedValue({ id: 1, isAdmin: true });
+    mockDelete.mockResolvedValue({ id: 1 });
+    const response = await request(app).delete('/user/1').set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(200);
+  });
+
+  it('should return 404 if user is not found', async () => {
+    mockJwtVerify.mockReturnValueOnce({ id: 1 });
+    mockFindFirst.mockResolvedValueOnce({ id: 1, isAdmin: true });
+    mockDelete.mockResolvedValue(null);
+    const response = await request(app).delete('/user/3').set('Authorization', 'Bearer test_token');
+    expect(response.statusCode).toBe(404);
+    expect(response.body).toEqual({
+      message: 'El usuario no fue encontrado.',
+      code: 'USER_NOT_FOUND',
+    });
+  });
+});
+
 describe('GET /', () => {
   it('should return all users', async () => {
     mockJwtVerify.mockReturnValueOnce({ id: 1 });

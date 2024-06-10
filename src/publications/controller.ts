@@ -67,7 +67,6 @@ export const createPublication = (req: Request, res: Response) => {
         type,
         price,
         image,
-        booksOfInterest,
         bookId
     } = req.body;
 
@@ -82,7 +81,6 @@ export const createPublication = (req: Request, res: Response) => {
             type: type,
             price: price === "" ? 0 : price,
             image: image,
-            booksOfInterest: booksOfInterest,
             bookId: bookId,
             ownerId: id
         }
