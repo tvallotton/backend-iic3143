@@ -130,7 +130,6 @@ export const updatePublication = async (req: Request, res: Response) => {
 
         res.json(updatedPublication);
     } catch (error: any) {
-        console.log(error)
         res.status(500).json({ error: error.message });
     }
 };
