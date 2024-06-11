@@ -67,7 +67,6 @@ export const createPublication = (req: Request, res: Response) => {
         type,
         price,
         image,
-        booksOfInterest,
         bookId
     } = req.body;
 
@@ -82,7 +81,6 @@ export const createPublication = (req: Request, res: Response) => {
             type: type,
             price: price === "" ? 0 : price,
             image: image,
-            booksOfInterest: booksOfInterest,
             bookId: bookId,
             ownerId: id
         }
@@ -93,13 +91,6 @@ export const createPublication = (req: Request, res: Response) => {
         res.json({ error: error.message });
     });
 };
-
-export const autocompleteData = (_req: Request, res: Response) => {
-    return res.json({
-        author: "J.K. Rowling",
-        description: "Harry is a little boy wizard bla bla bla"
-     });
-}
 
 export const updatePublication = async (req: Request, res: Response) => {
     const { id } = req.params;
@@ -139,7 +130,6 @@ export const updatePublication = async (req: Request, res: Response) => {
 
         res.json(updatedPublication);
     } catch (error: any) {
-        console.log(error)
         res.status(500).json({ error: error.message });
     }
 };
