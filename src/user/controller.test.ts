@@ -366,10 +366,10 @@ describe('PATCH /', () => {
       id: 2,
       token: 'test_token',
       password: 'hashedPassword',
-      isAdmin: false
+      isAdmin: false,
     });
     mockUpdate.mockResolvedValue({ id: 1, name: 'newName' });
-    mockJwtVerify.mockReturnValueOnce({ id: 2, isAdmin: false});
+    mockJwtVerify.mockReturnValueOnce({ id: 2, isAdmin: false });
     const response = await request(app)
       .patch('/user')
       .send({ id: 1, password: 'hashedPassword', name: 'newName' })
@@ -377,7 +377,6 @@ describe('PATCH /', () => {
     expect(response.status).toBe(403);
     expect(response.body).toEqual(errors.UNAUTHORIZED);
   });
-
 
   it('should return 401 if you are not authorized', async () => {
     const response = await request(app)
@@ -452,6 +451,7 @@ describe('POST /verify', () => {
     mockJwtVerify.mockImplementation(() => {
       throw mockJwt;
     });
+    
     const response = await request(app)
       .post('/user/verify')
       .send({ token: 'expired_token', password: 'newPassword' });
