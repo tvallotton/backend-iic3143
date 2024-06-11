@@ -3,6 +3,7 @@ import request from 'supertest';
 import userRouter from './controller';
 import errors from '../errors';
 import { Prisma } from '@prisma/client';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 app.use(express.json());
@@ -304,6 +305,108 @@ describe('POST /change-password', () => {
       message: 'Ocurrió un error en el servidor.',
     });
   });
+
+  it('should return 401 if the token is expired', async () => {
+    const mockJwt = new jwt.JsonWebTokenError('Mock JWT Error');
+    mockJwtVerify.mockImplementation(() => {
+      throw mockJwt;
+    });
+    const response = await request(app)
+      .post('/user/change-password')
+      .send({ token: 'expired_token', password: 'newPassword' });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual(errors.TOKEN_EXPIRED);
+  });
+});
+
+describe('PATCH /', () => {
+  it('should remove isAdmin field from request body if the user is not an admin', async () => {
+    mockFindFirst.mockResolvedValueOnce({
+      id: 1,
+      token: 'test_token',
+      password: 'hashedPassword',
+      isAdmin: false,
+    });
+    mockUpdate.mockResolvedValue({ id: 1, name: 'newName' });
+    mockJwtVerify.mockReturnValueOnce({ id: 1 });
+
+    const response = await request(app)
+      .patch('/user')
+      .send({ id: 1, password: 'hashedPassword', name: 'newName', isAdmin: false })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      status: 'success',
+      user: { id: 1, name: 'newName' },
+    });
+  });
+
+  it('should update the user succesfully if its your own profile', async () => {
+    mockFindFirst.mockResolvedValueOnce({
+      id: 1,
+      token: 'test@example.com',
+      password: 'hashedPassword',
+    });
+    mockUpdate.mockResolvedValue({ id: 1, name: 'newName' });
+    mockJwtVerify.mockReturnValueOnce({ id: 1 });
+    const response = await request(app)
+      .patch('/user')
+      .send({ id: 1, password: 'hashedPassword', name: 'newName' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      status: 'success',
+      user: { id: 1, name: 'newName' },
+    });
+  });
+
+  it('should return 403 if you are not authorized to update the user', async () => {
+    mockFindFirst.mockResolvedValueOnce({
+      id: 2,
+      token: 'test_token',
+      password: 'hashedPassword',
+      isAdmin: false
+    });
+    mockUpdate.mockResolvedValue({ id: 1, name: 'newName' });
+    mockJwtVerify.mockReturnValueOnce({ id: 2, isAdmin: false});
+    const response = await request(app)
+      .patch('/user')
+      .send({ id: 1, password: 'hashedPassword', name: 'newName' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual(errors.UNAUTHORIZED);
+  });
+
+
+  it('should return 401 if you are not authorized', async () => {
+    const response = await request(app)
+      .patch('/user')
+      .send({ id: 1, password: 'hashedPassword', name: 'newName' });
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      message: 'Tienes que ingresar sesión para acceder a este recurso.',
+    });
+  });
+
+  it('should return a 400 error if bad request', async () => {
+    mockFindFirst.mockResolvedValueOnce({
+      id: 1,
+      token: 'test@example.com',
+      password: 'hashedPassword',
+    });
+    mockUpdate.mockRejectedValueOnce(new Error('Bad request'));
+    mockJwtVerify.mockReturnValueOnce({ id: 1 });
+    const response = await request(app)
+      .patch('/user')
+      .send({ id: 1, password: 'hashedPassword', name: 'newName' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      code: 'BAD_REQUEST',
+      message: 'Bad request',
+    });
+  });
 });
 
 describe('POST /verify', () => {
@@ -343,54 +446,17 @@ describe('POST /verify', () => {
       message: 'Ocurrió un error en el servidor.',
     });
   });
-});
 
-describe('PATCH /', () => {
-  it('should update the user succesfully if its your own profile', async () => {
-    mockFindFirst.mockResolvedValueOnce({
-      id: 1,
-      token: 'test@example.com',
-      password: 'hashedPassword',
+  it('should return 401 if the token is expired', async () => {
+    const mockJwt = new jwt.JsonWebTokenError('Mock JWT Error');
+    mockJwtVerify.mockImplementation(() => {
+      throw mockJwt;
     });
-    mockUpdate.mockResolvedValue({ id: 1, name: 'newName' });
-    mockJwtVerify.mockReturnValueOnce({ id: 1 });
     const response = await request(app)
-      .patch('/user')
-      .send({ id: 1, password: 'hashedPassword', name: 'newName' })
-      .set('Authorization', 'Bearer test_token');
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual({
-      status: 'success',
-      user: { id: 1, name: 'newName' },
-    });
-  });
+      .post('/user/verify')
+      .send({ token: 'expired_token', password: 'newPassword' });
 
-  it('should return 401 if you are not authorized', async () => {
-    const response = await request(app)
-      .patch('/user')
-      .send({ id: 1, password: 'hashedPassword', name: 'newName' });
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({
-      message: 'Tienes que ingresar sesión para acceder a este recurso.',
-    });
-  });
-
-  it('should return a 400 error if bad request', async () => {
-    mockFindFirst.mockResolvedValueOnce({
-      id: 1,
-      token: 'test@example.com',
-      password: 'hashedPassword',
-    });
-    mockUpdate.mockRejectedValueOnce(new Error('Bad request'));
-    mockJwtVerify.mockReturnValueOnce({ id: 1 });
-    const response = await request(app)
-      .patch('/user')
-      .send({ id: 1, password: 'hashedPassword', name: 'newName' })
-      .set('Authorization', 'Bearer test_token');
-    expect(response.status).toBe(400);
-    expect(response.body).toEqual({
-      code: 'BAD_REQUEST',
-      message: 'Bad request',
-    });
+    expect(response.body).toEqual(errors.TOKEN_EXPIRED);
   });
 });
