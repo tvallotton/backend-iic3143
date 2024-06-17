@@ -49,7 +49,7 @@ router.get('/me', user(), async (req: any, res: any) => {
 router.get('/:id', user({ adminsOnly: true }), async (req, res) => {
   const { id } = req.params;
   const user = await prisma.user.findFirst({
-    where: { id: Number(id) },
+    where: { id: id},
   });
   if (user === null) {
     return res.status(404).json(errors.USER_NOT_FOUND);
@@ -76,8 +76,6 @@ router.post('/', async (req, res) => {
       res.json(errors.INVALID_EMAIL);
       return;
     }
-    user.isAdmin = false;
-    user.isValidated = false;
     const created = await prisma.user.create({
       data: user,
     });
@@ -103,6 +101,7 @@ router.post('/', async (req, res) => {
       res.json(errors.USER_ALREADY_EXISTS);
       return;
     }
+    console.error(e);
     res.status(400);
     res.json(errors.UNKOWN_ERROR_CREATE_USER);
   }
@@ -133,6 +132,7 @@ router.post('/login', async (req, res) => {
     res.json(errors.INCORRECT_PASSWORD);
     return;
   }
+  console.log(user.id)
   const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '48h' });
   res.setHeader('authorization', token);
   res.json({ authorization: token });
@@ -141,7 +141,7 @@ router.post('/login', async (req, res) => {
 router.post('/change-password', async (req, res) => {
   const { token, password } = req.body;
   try {
-    const { userId: id } = jwt.verify(token || '', JWT_SECRET, {}) as { userId: number };
+    const { userId: id } = jwt.verify(token || '', JWT_SECRET, {}) as { userId: string };
     const newPassword = await argon2.hash(password);
     const user = await prisma.user.update({
       data: { password: newPassword },
@@ -162,7 +162,7 @@ router.post('/verify', async (req, res) => {
     const { token } = req.body;
 
     try {
-      const { userId: id } = jwt.verify(token || '', JWT_SECRET, {}) as { userId: number };
+      const { userId: id } = jwt.verify(token || '', JWT_SECRET, {}) as { userId: string };
       const user = await prisma.user.update({
         data: { isValidated: true },
         where: { id },
@@ -173,6 +173,7 @@ router.post('/verify', async (req, res) => {
       if (e instanceof jwt.JsonWebTokenError) {
         res.status(401).json(errors.TOKEN_EXPIRED);
       } else {
+        console.error(e);
         res.status(500).json(errors.INTERNAL_SERVER);
       }
     }
@@ -208,7 +209,7 @@ router.delete('/:id', user({ adminsOnly: true }), async (req, res) => {
   try {
     const user = await prisma.user.delete({
       where: {
-        id: Number(id),
+        id,
       },
     });
     delete (user as any).password;
