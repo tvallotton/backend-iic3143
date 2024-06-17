@@ -66,8 +66,6 @@ export function user(options?: Options) {
                 req.user = await fetchUser(token);
                 if (!req.user?.isAdmin && options?.adminsOnly) {
                     return forbidden(res);
-                } else if (!req.user?.isAdmin && options?.adminsOnly) {
-                    return forbidden(res);
                 } else {
                     return next();
                 }
