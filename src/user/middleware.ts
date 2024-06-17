@@ -27,32 +27,32 @@ declare global {
 interface Options {
     /**
      * If optional then the middleware won't respond with an error
-     * in case the user isn't authenticated. This way the handler 
-     * can manage those cases. It defaults to false. 
+     * in case the user isn't authenticated. This way the handler
+     * can manage those cases. It defaults to false.
      */
     optional?: boolean;
     /**
-     * It is used to respond with a forbidden status for 
-     * admin only content. It defaults to false. 
+     * It is used to respond with a forbidden status for
+     * admin only content. It defaults to false.
      */
     adminsOnly?: boolean;
 
 
 }
 /**
- * This is authentication middleware, it can be used to 
- * fetch the user from the database automatically. By default 
+ * This is authentication middleware, it can be used to
+ * fetch the user from the database automatically. By default
  * this middlware will respond with an error if the user
- * is not logged in. This can be customized by setting optional to `true`. 
- * @param options - used to customize the behavior of the middleware. 
+ * is not logged in. This can be customized by setting optional to `true`.
+ * @param options - used to customize the behavior of the middleware.
  * @returns {undefined}
  * @example
  * This is how you would use it for an admin panel
  * ```ts
  * import { user, Request } from "../user/middleware";
  * router.get("/admin-panel", user({adminsOnly: true}), (req: Request, res) => {
- *     // ... // 
- * }); 
+ *     // ... //
+ * });
  * ```
  */
 export function user(options?: Options) {
@@ -70,6 +70,7 @@ export function user(options?: Options) {
                     return next();
                 }
             } catch (e) {
+                // console.error(e);
                 return expired(res, next, options);
             }
         }
@@ -78,7 +79,7 @@ export function user(options?: Options) {
 }
 
 async function fetchUser(token: string) {
-    const { id } = jwt.verify(token, JWT_SECRET, {}) as { id: number; };
+    const { id } = jwt.verify(token, JWT_SECRET, {}) as { id: string; };
     return await prisma.user.findFirst({ where: { id } }) || undefined;
 }
 
