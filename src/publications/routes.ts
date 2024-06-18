@@ -8,6 +8,7 @@ import {
   getGenres,
   createInteraction,
   getInteractions,
+  completeInteraction,
 } from "./controller";
 import { user } from "../user/middleware";
 const router = express.Router();
@@ -37,5 +38,6 @@ router.post("/:id/interactions", user(), createInteraction);
 
 router.get("/:id/interactions", user(), getInteractions);
 
+router.patch("/:id/interactions", user(), completeInteraction);
 
 export default router;

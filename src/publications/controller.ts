@@ -212,7 +212,6 @@ export const deletePublication = async (req: Request, res: Response) => {
 };
 
 // FILTERS
-
 export const getGenres = async (_req: Request, res: Response) => {
   try {
     const genres = await prisma.publication.findMany({
@@ -314,6 +313,46 @@ export const getInteractions = async (req: Request, res: Response) => {
     });
 
     res.json(interactions);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const completeInteraction = async (req: Request, res: Response) => {
+  const { interactionId } = req.params;
+
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+
+  try {
+    const interaction = await prisma.publicationInteraction.findUnique({
+      where: { id: interactionId },
+      include: {
+        publication: true,
+      },
+    });
+
+    if (!interaction) {
+      return res.status(404).json({ error: "Interaction doesn't exist" });
+    }
+
+    if (interaction.publication.ownerId !== userId) {
+      return res.status(403).json({
+        error: "You don't have permission to complete this interaction",
+      });
+    }
+
+    await prisma.publicationInteraction.update({
+      where: { id: interactionId },
+      data: {
+        status: "COMPLETED",
+      },
+    });
+
+    res.json({ message: "Interaction completed successfully" });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
