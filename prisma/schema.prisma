@@ -51,21 +51,21 @@ model Publication {
 }
 
 model Review {
-  id             String      @id @default(uuid()) @db.Uuid()
+  id             String       @id @default(uuid()) @db.Uuid()
   rating         Int
   comment        String
-  user           User        @relation("ReviewsGiven", fields: [userId], references: [id])
-  userId         String      @db.Uuid()
-  reviewedUser   User        @relation("ReviewsReceived", fields: [reviewedUserId], references: [id])
-  reviewedUserId String      @db.Uuid()
-  publication    Publication @relation(fields: [publicationId], references: [id])
-  publicationId  String      @db.Uuid()
-  createdAt      DateTime    @default(now())
+  user           User         @relation("ReviewsGiven", fields: [userId], references: [id])
+  userId         String       @db.Uuid()
+  reviewedUser   User         @relation("ReviewsReceived", fields: [reviewedUserId], references: [id])
+  reviewedUserId String       @db.Uuid()
+  publication    Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  publicationId  String?       @db.Uuid()
+  createdAt      DateTime     @default(now())
 }
 
 model PublicationInteraction {
   id            String            @id @default(uuid()) @db.Uuid()
-  publication   Publication       @relation(fields: [publicationId], references: [id])
+  publication   Publication       @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   publicationId String            @db.Uuid()
   user          User              @relation(fields: [userId], references: [id])
   userId        String            @db.Uuid()
