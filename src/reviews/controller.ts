@@ -1,6 +1,5 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import jwt from "jsonwebtoken";
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
 
 export const JWT_SECRET = process.env["JWT_SECRET"] || Math.random() + "";
 const prisma = new PrismaClient();
@@ -11,11 +10,11 @@ export const getAllReviews = async (_req: Request, res: Response) => {
 };
 
 export const getReviewById = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
+  const { id } = req.params;
   const review = await prisma.review.findUnique({
     where: {
-      id: id
-    }
+      id,
+    },
   });
   if (review) {
     res.json(review);
@@ -25,73 +24,67 @@ export const getReviewById = async (req: Request, res: Response) => {
 };
 
 export const createReview = async (req: Request, res: Response) => {
-  const token = req.headers.authorization;
-  if (!token) {
-    return res.status(401).json({ error: "No token provided" });
+  const id = req.user?.id;
+  if (!id) {
+    return res.status(500).json({ error: "Internal server error" });
   }
 
-  const { id } = jwt.verify(token.replace("Bearer ", ""), JWT_SECRET, {}) as { id: number; };
-  console.log(id)
-  const { 
-    rating,
-    comment,
-    reviewedUserId,
-    publicationId,
-  } = req.body;
-  console.log(rating, comment, reviewedUserId, publicationId)
-  prisma.review.create({
-    data: {
-      rating: rating,
-      comment: comment,
-      userId: id,
-      reviewedUserId: reviewedUserId,
-      publicationId: parseInt(publicationId)
-    }
-  }).then((review) => {
-    res.json(review);
-  }
-  ).catch((error) => {
-    res.json({ error: error.message });
-  });
+  const { rating, comment, reviewedUserId, publicationId } = req.body;
+  prisma.review
+    .create({
+      data: {
+        rating: rating as number,
+        comment: comment as string,
+        userId: id,
+        reviewedUserId: reviewedUserId as string,
+        publicationId: publicationId as string,
+      },
+    })
+    .then((review) => {
+      res.json(review);
+    })
+    .catch((error) => {
+      res.json({ error: error.message });
+    });
 };
 
 export const getReviewsReceived = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
+  const { id } = req.params;
   // user has a list of reviews received thanks to the relation made
   const user = await prisma.user.findUnique({
     where: {
-      id: id
+      id,
     },
     include: {
-      ReviewsReceived: true
-    }
+      ReviewsReceived: true,
+    },
   });
   res.json(user?.ReviewsReceived);
-}
+};
 
 export const getReviewsGiven = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
+  const { id } = req.params;
   // user has a list of reviews given thanks to the relation made
   const user = await prisma.user.findUnique({
     where: {
-      id: id
+      id,
     },
     include: {
-      ReviewsGiven: true
-    }
+      ReviewsGiven: true,
+    },
   });
   res.json(user?.ReviewsGiven);
-}
+};
 
 export const getUserRating = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
+  const { id } = req.params;
   const user = await prisma.user.findUnique({
     where: {
-      id: id
+      id,
     },
     include: {
-      ReviewsReceived: true
-    }
+      ReviewsReceived: true,
+    },
   });
   const reviews = user?.ReviewsReceived;
   if (reviews) {
@@ -101,4 +94,4 @@ export const getUserRating = async (req: Request, res: Response) => {
   } else {
     res.json({ average: 0 });
   }
-}
+};

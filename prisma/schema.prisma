@@ -14,12 +14,11 @@ datasource db {
 }
 
 model User {
-  // [TODO]: Debería ser UUID
-  id              Int           @id @default(autoincrement())
-  email           String        @unique
-  password        String
-  name            String        @default("")
-  lastName        String        @default("")
+  id              String        @id @default(uuid()) @db.Uuid()
+  email           String        @unique @db.VarChar(320)
+  password        String        @db.VarChar(255)
+  name            String        @default("") @db.VarChar(32)
+  lastName        String        @default("") @db.VarChar(32)
   birthdate       DateTime?
   publications    Publication[]
   isAdmin         Boolean       @default(false)
@@ -30,36 +29,47 @@ model User {
 }
 
 model Publication {
-  // [TODO]: Debería ser UUID
-  id              Int      @id @default(autoincrement())
-  title           String
-  author          String
-  language        String
-  genres          String[] @db.VarChar(64)
-  bookState       String
-  description     String
-  type            String
-  price           Int
-  image           String
-  booksOfInterest String
-  bookId          String // usa el id de google books
-  owner           User     @relation(fields: [ownerId], references: [id])
-  ownerId         Int
-  status          String   @default("available")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  Review          Review[]
+  id          String          @id @default(uuid()) @db.Uuid()
+  title       String          @db.VarChar(255)
+  author      String          @db.VarChar(255)
+  language    String          @db.VarChar(32)
+  genres      String[]        @db.VarChar(64)
+  bookState   BookState
+  description String
+  type        PublicationType
+  price       Int
+  image       String
+  bookId      String          @db.VarChar(64)
+  owner       User            @relation(fields: [ownerId], references: [id])
+  ownerId     String          @db.Uuid()
+  available   Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  Review      Review[]
 }
 
 model Review {
-  id            Int          @id @default(autoincrement())
-  rating        Int
-  comment       String
-  user          User         @relation("ReviewsGiven", fields: [userId], references: [id])
-  userId        Int
-  reviewedUser   User         @relation("ReviewsReceived", fields: [reviewedUserId], references: [id])
-  reviewedUserId Int
-  publication   Publication? @relation(fields: [publicationId], references: [id])
-  publicationId Int?
-  createdAt     DateTime     @default(now())
+  id             String      @id @default(uuid()) @db.Uuid()
+  rating         Int
+  comment        String
+  user           User        @relation("ReviewsGiven", fields: [userId], references: [id])
+  userId         String      @db.Uuid()
+  reviewedUser   User        @relation("ReviewsReceived", fields: [reviewedUserId], references: [id])
+  reviewedUserId String      @db.Uuid()
+  publication    Publication @relation(fields: [publicationId], references: [id])
+  publicationId  String      @db.Uuid()
+  createdAt      DateTime    @default(now())
+}
+
+enum BookState {
+  NEW
+  LIKE_NEW
+  USED
+  VERY_USED
+}
+
+enum PublicationType {
+  SELL
+  TRADE
+  SELL_TRADE
 }
