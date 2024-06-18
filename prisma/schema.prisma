@@ -71,6 +71,8 @@ model PublicationInteraction {
   userId        String            @db.Uuid()
   createdAt     DateTime          @default(now())
   status        InteractionStatus @default(VIEWED)
+
+  @@unique([publicationId, userId])
 }
 
 enum BookState {
