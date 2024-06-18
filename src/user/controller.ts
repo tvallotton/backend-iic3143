@@ -220,6 +220,32 @@ router.delete('/:id', user({ adminsOnly: true }), async (req, res) => {
   }
 });
 
+// Interactions
+
+router.get("/interactions", user(), async (req, res) => {
+  const { id } = req.params;
+  const interactions = await prisma.publicationInteraction.findMany({
+    where: {
+      userId: id,
+    },
+  });
+  res.json(interactions);
+});
+
+router.get(
+  "/:id/interactions",
+  user({ adminsOnly: true }),
+  async (req, res) => {
+    const { id } = req.params;
+    const interactions = await prisma.publicationInteraction.findMany({
+      where: {
+        userId: id,
+      },
+    });
+    res.json(interactions);
+  }
+);
+
 router.use((_err: Error, _req: any, res: any, _next: any) => {
   res.status(401).json(errors.UNAUTHORIZED);
 });
