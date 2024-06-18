@@ -7,6 +7,7 @@ import {
   deletePublication,
   getGenres,
   createInteraction,
+  getInteractions,
 } from "./controller";
 import { user } from "../user/middleware";
 const router = express.Router();
@@ -33,5 +34,8 @@ router.delete("/:id", user(), deletePublication);
 
 // INTERACTIONS
 router.post("/:id/interactions", user(), createInteraction);
+
+router.get("/:id/interactions", user(), getInteractions);
+
 
 export default router;

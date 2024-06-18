@@ -274,3 +274,47 @@ export const createInteraction = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const getInteractions = async (req: Request, res: Response) => {
+  const { publicationId } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+
+  try {
+    const publication = await prisma.publication.findUnique({
+      where: { id: publicationId },
+    });
+
+    if (!publication) {
+      return res.status(404).json({ error: "Publication doesn't exist" });
+    }
+
+    if (publication.ownerId !== userId) {
+      return res.status(403).json({
+        error: "You don't have permission to see this publication interactions",
+      });
+    }
+
+    const interactions = await prisma.publicationInteraction.findMany({
+      where: {
+        publicationId,
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    res.json(interactions);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
