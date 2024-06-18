@@ -291,7 +291,7 @@ export const getInteractions = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Publication doesn't exist" });
     }
 
-    if (publication.ownerId !== userId) {
+    if (publication.ownerId !== userId && !req.user?.isAdmin) {
       return res.status(403).json({
         error: "You don't have permission to see this publication interactions",
       });
