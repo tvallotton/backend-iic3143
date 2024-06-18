@@ -6,6 +6,7 @@ import {
   updatePublication,
   deletePublication,
   getGenres,
+  createInteraction,
 } from "./controller";
 import { user } from "../user/middleware";
 const router = express.Router();
@@ -29,5 +30,8 @@ router.put("/:id", user(), updatePublication);
 
 // DELETE /publications/:id - Delete a publication
 router.delete("/:id", user(), deletePublication);
+
+// INTERACTIONS
+router.post("/:id/interactions", user(), createInteraction);
 
 export default router;

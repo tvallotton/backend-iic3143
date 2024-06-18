@@ -32,8 +32,16 @@ export const getAllPublications = (_req: Request, res: Response) => {
       const enumsMappedPublications = publications.map((publication) => {
         return {
           ...publication,
-          type: Object.keys(publicationTypes).find((key) => publication.type === publicationTypes[key as keyof typeof publicationTypes]),
-          bookState: Object.keys(booksStates).find((key) => publication.bookState === booksStates[key as keyof typeof booksStates]),
+          type: Object.keys(publicationTypes).find(
+            (key) =>
+              publication.type ===
+              publicationTypes[key as keyof typeof publicationTypes]
+          ),
+          bookState: Object.keys(booksStates).find(
+            (key) =>
+              publication.bookState ===
+              booksStates[key as keyof typeof booksStates]
+          ),
         };
       });
       res.json(enumsMappedPublications);
@@ -59,8 +67,16 @@ export const getPublicationById = (req: Request, res: Response) => {
         const response = {
           ...publication,
           owner: publication.owner.name,
-          type: Object.keys(publicationTypes).find((key) => publication.type === publicationTypes[key as keyof typeof publicationTypes]),
-          bookState: Object.keys(booksStates).find((key) => publication.bookState === booksStates[key as keyof typeof booksStates]),
+          type: Object.keys(publicationTypes).find(
+            (key) =>
+              publication.type ===
+              publicationTypes[key as keyof typeof publicationTypes]
+          ),
+          bookState: Object.keys(booksStates).find(
+            (key) =>
+              publication.bookState ===
+              booksStates[key as keyof typeof booksStates]
+          ),
         };
         res.json(response);
       } else {
@@ -152,7 +168,9 @@ export const updatePublication = async (req: Request, res: Response) => {
       where: { id },
       data: {
         ...updateData,
-        type: publicationTypes[updateData.type as keyof typeof publicationTypes],
+        type: publicationTypes[
+          updateData.type as keyof typeof publicationTypes
+        ],
         bookState: booksStates[updateData.state as keyof typeof booksStates],
       },
     });
@@ -210,5 +228,49 @@ export const getGenres = async (_req: Request, res: Response) => {
     res.json(uniqueGenres);
   } catch (error: any) {
     res.json({ error: error.message });
+  }
+};
+
+// Interaction
+export const createInteraction = async (req: Request, res: Response) => {
+  const { publicationId } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+
+  try {
+    const publication = await prisma.publication.findUnique({
+      where: { id: publicationId },
+    });
+
+    if (!publication) {
+      return res.status(404).json({ error: "Publication doesn't exist" });
+    }
+
+    if (publication.ownerId === userId) {
+      return res.status(403).json({
+        error: "You can't interact with your own publication",
+      });
+    }
+
+    const interaction = await prisma.publicationInteraction.upsert({
+      where: {
+        publicationId_userId: {
+          publicationId,
+          userId,
+        },
+      },
+      update: {},
+      create: {
+        publicationId,
+        userId,
+      },
+    });
+
+    res.status(201).json({ interaction });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 };
