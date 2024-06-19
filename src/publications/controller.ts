@@ -398,8 +398,8 @@ export const completeInteraction = async (req: Request, res: Response) => {
       },
     });
 
-    if (!interaction) {
-      return res.status(404).json({ error: "Interaction doesn't exist" });
+    if (!interaction || !interaction.publication) {
+      return res.status(404).json({ error: "Interaction or publication doesn't exist" });
     }
 
     if (interaction.publication.ownerId !== userId) {
