@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import mailer, { MAIL_USER } from "../mailer";
 
 export const JWT_SECRET = process.env["JWT_SECRET"] || Math.random() + "";
 const prisma = new PrismaClient();
@@ -232,7 +233,7 @@ export const getGenres = async (_req: Request, res: Response) => {
 
 // Interaction
 export const createInteraction = async (req: Request, res: Response) => {
-  const { publicationId } = req.params;
+  const { id: publicationId } = req.params;
   const userId = req.user?.id;
 
   if (!userId) {
@@ -242,6 +243,14 @@ export const createInteraction = async (req: Request, res: Response) => {
   try {
     const publication = await prisma.publication.findUnique({
       where: { id: publicationId },
+      include: {
+        owner: {
+          select: {
+            email: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!publication) {
@@ -254,7 +263,7 @@ export const createInteraction = async (req: Request, res: Response) => {
       });
     }
 
-    const interaction = await prisma.publicationInteraction.upsert({
+    let interaction = await prisma.publicationInteraction.upsert({
       where: {
         publicationId_userId: {
           publicationId,
@@ -268,14 +277,68 @@ export const createInteraction = async (req: Request, res: Response) => {
       },
     });
 
-    res.status(201).json({ interaction });
+    const currentDate = new Date()
+    const lastUpdate = new Date(interaction.updatedAt)
+    const diff = currentDate.getTime() - lastUpdate.getTime()
+
+    // If the last email was sent more than 2 days ago, reset the emailSent flag
+    if (diff > 1000 * 60 * 60 * 24 * 2) {
+      interaction = await prisma.publicationInteraction.update({
+        where: {
+          id: interaction.id,
+        },
+        data: {
+          emailSent: false,
+        },
+      });
+    }
+
+    if (!interaction.emailSent) {
+      res.on("finish", async () => {
+        await mailer.sendMail({
+          from: MAIL_USER,
+          to: publication.owner.email,
+          subject: "Usuario interesado en tu publicación",
+          text: `
+      !Hola ${publication.owner.name}!
+
+      El usuario
+
+        Nombre: ${req.user?.name}
+        Correo: ${req.user?.email}
+
+      ha mostrado interés en tu publicación ${publication.title}.
+
+      Puedes ponerte en contacto con el usuario respondiendo a este correo.
+
+      Saludos,
+
+      El equipo de PagePals`,
+          replyTo: req.user?.email,
+        });
+
+        await prisma.publicationInteraction.update({
+          where: {
+            id: interaction.id,
+          },
+          data: {
+            updatedAt: new Date(),
+            emailSent: true,
+          },
+        });
+      });
+
+      return res.status(201).json({ interaction });
+    }
+
+    res.status(200).json({ interaction });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
 
 export const getInteractions = async (req: Request, res: Response) => {
-  const { publicationId } = req.params;
+  const { id: publicationId } = req.params;
   const userId = req.user?.id;
 
   if (!userId) {
