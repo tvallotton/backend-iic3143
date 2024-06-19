@@ -38,6 +38,6 @@ router.post("/:id/interactions", user(), createInteraction);
 
 router.get("/:id/interactions", user(), getInteractions);
 
-router.patch("/:id/interactions", user(), completeInteraction);
+router.patch("/interactions/:id", user(), completeInteraction);
 
 export default router;
