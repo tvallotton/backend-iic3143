@@ -2,8 +2,13 @@ import express from 'express';
 import request from 'supertest';
 import router from './routes';
 
+const app = express();
+app.use(express.json());
+app.use('/publications', router);
+
 const mockFindMany = jest.fn();
 const mockFindUnique = jest.fn();
+const mockFindFirst = jest.fn();
 const mockJwtVerify = jest.fn();
 const mockCreate = jest.fn();
 const mockUpdate = jest.fn();
@@ -39,13 +44,12 @@ jest.mock('@prisma/client', () => {
         update: () => mockUpdate(),
         delete: () => mockDelete(),
       },
+      user: {
+        findFirst: () => mockFindFirst(),
+      },
     })),
   };
 });
-
-const app = express();
-app.use(express.json());
-app.use('/publications', router);
 
 describe('GET /publications', () => {
   it('should return all publications with their owners', async () => {
@@ -154,8 +158,8 @@ describe('POST /publications', () => {
         name: 'Test Owner 1',
       },
     };
-
-    mockJwtVerify.mockReturnValue({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60" });
+    mockJwtVerify.mockReturnValueOnce({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60" });
+    mockFindFirst.mockResolvedValue({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60", isAdmin: true });
     mockCreate.mockResolvedValue(mockPublication);
     const response = await request(app)
       .post('/publications')
@@ -179,7 +183,7 @@ describe('POST /publications', () => {
   it('should ask for a token', async () => {
     const response = await request(app).post('/publications');
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'No token provided' });
+    expect(response.body).toEqual({ message: 'Tienes que ingresar sesión para acceder a este recurso.' });
   });
 
   it('should handle errors', async () => {
@@ -244,6 +248,7 @@ describe('PUT /publications/:id', () => {
       ownerId: "6ee3c6c6-22df-42b3-9e05-cce441843382",
     };
     mockFindUnique.mockResolvedValueOnce(mockPublication);
+    mockFindFirst.mockResolvedValue({ id: "6ee3c6c6-22df-42b3-9e05-cce441843382", isAdmin: true });
     mockJwtVerify.mockReturnValue({ id: "6ee3c6c6-22df-42b3-9e05-cce441843382" });
     mockUpdate.mockResolvedValue({
       ...mockPublication,
@@ -266,11 +271,12 @@ describe('PUT /publications/:id', () => {
       owner: {
         name: 'Test Owner 1',
       },
-      ownerId: 1,
+      ownerId: "6ee3c6c6-22df-42b3-9e05-cce441843382",
     };
     mockFindUnique.mockResolvedValueOnce(mockPublication);
     mockUpdate.mockRejectedValue(new Error('Unkown error'));
-    mockJwtVerify.mockReturnValue({ id: 1 });
+    mockJwtVerify.mockReturnValue({ id: "6ee3c6c6-22df-42b3-9e05-cce441843382" });
+    mockFindFirst.mockResolvedValue({ id: "6ee3c6c6-22df-42b3-9e05-cce441843382", isAdmin: true });
     const response = await request(app)
       .put('/publications/1')
       .set('Authorization', 'Bearer test_token');
@@ -311,7 +317,7 @@ describe('PUT /publications/:id', () => {
   it('should ask for a token', async () => {
     const response = await request(app).put('/publications/1');
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'No token provided' });
+    expect(response.body).toEqual({ message: 'Tienes que ingresar sesión para acceder a este recurso.' });
   });
 });
 
@@ -323,10 +329,11 @@ describe('DELETE /publications/:id', () => {
       owner: {
         name: 'Test Owner 1',
       },
-      ownerId: 1,
+      ownerId: "5da23d04-986f-4104-84f3-ce933d58ea64",
     };
     mockFindUnique.mockResolvedValueOnce(mockPublication);
-    mockJwtVerify.mockReturnValue({ id: 1 });
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
     mockDelete.mockResolvedValue({ message: 'Publication deleted successfully' });
     const response = await request(app)
       .delete('/publications/1')
@@ -347,6 +354,7 @@ describe('DELETE /publications/:id', () => {
     mockFindUnique.mockResolvedValueOnce(mockPublication);
     mockDelete.mockRejectedValue(new Error('Unkown error'));
     mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
     const response = await request(app)
       .delete('/publications/53358c00-6ada-4592-8f56-1e0ba30ed087')
       .set('Authorization', 'Bearer test_token');
@@ -369,6 +377,6 @@ describe('DELETE /publications/:id', () => {
   it('should ask for a token', async () => {
     const response = await request(app).delete('/publications/1');
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'No token provided' });
+    expect(response.body).toEqual({ message: 'Tienes que ingresar sesión para acceder a este recurso.' });
   });
 });

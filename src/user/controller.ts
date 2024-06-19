@@ -49,7 +49,7 @@ router.get('/me', user(), async (req: any, res: any) => {
 router.get('/:id', user({ adminsOnly: true }), async (req, res) => {
   const { id } = req.params;
   const user = await prisma.user.findFirst({
-    where: { id: id},
+    where: { id },
   });
   if (user === null) {
     return res.status(404).json(errors.USER_NOT_FOUND);

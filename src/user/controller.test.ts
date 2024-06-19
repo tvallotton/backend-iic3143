@@ -57,8 +57,8 @@ jest.mock('@prisma/client', () => {
     PrismaClient: jest.fn().mockImplementation(() => ({
       user: {
         findMany: jest.fn().mockResolvedValue([
-          { id: userId1, isAdmin: true },
-          { id: userId2, isAdmin: false },
+          { id: () => userId1, isAdmin: true },
+          { id: () => userId2, isAdmin: false },
         ]),
         findFirst: () => mockFindFirst(),
         create: () => mockCreate(),
