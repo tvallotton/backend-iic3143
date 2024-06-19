@@ -32,6 +32,23 @@ router.get("/me", user(), async (req: any, res: any) => {
   res.status(200).json({ user });
 });
 
+router.get("/interactions", user(), async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+
+  const interactions = await prisma.publicationInteraction.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      publication: true,
+    },
+  });
+  res.json(interactions);
+});
+
 router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
   const { id } = req.params;
   const user = await prisma.user.findFirst({
@@ -60,6 +77,7 @@ router.post("/", async (req, res) => {
     }
     user.password = await argon2.hash(user.password);
     user.email = user.email.toLowerCase();
+    user.birthdate = new Date(user.birthdate?.toString() || "");
     if (!user.email.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)) {
       res.status(400);
       res.json(errors.INVALID_EMAIL);
@@ -217,24 +235,6 @@ router.delete("/:id", user({ adminsOnly: true }), async (req, res) => {
 });
 
 // Interactions
-
-router.get("/interactions", user(), async (req, res) => {
-  const userId = req.user?.id;
-
-  if (!userId) {
-    return res.status(500).json({ error: "Internal server error" });
-  }
-
-  const interactions = await prisma.publicationInteraction.findMany({
-    where: {
-      userId,
-    },
-    include: {
-      publication: true,
-    },
-  });
-  res.json(interactions);
-});
 
 router.get(
   "/:id/interactions",
