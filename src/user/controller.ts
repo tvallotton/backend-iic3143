@@ -4,27 +4,13 @@ import jwt from "jsonwebtoken";
 import argon2 from "argon2";
 import { JWT_SECRET, user } from "./middleware";
 import errors from "../errors";
+import mailer, { MAIL_USER } from "../mailer";
 
-import nodemailer from "nodemailer";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
 const prisma = new PrismaClient();
 const router = Router();
-
-const MAIL_USER = process.env["MAIL_USER"];
-const MAIL_PASS = process.env["MAIL_PASS"];
 const HOST = process.env["HOST"] || "http://localhost:5173";
-const transporter = nodemailer.createTransport({
-  service: "hotmail",
-  auth: {
-    user: MAIL_USER,
-    pass: MAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-    // ciphers: 'SSLv3'
-  },
-});
 
 router.get("/", user({ adminsOnly: true }), async (req, res) => {
   const skip = Number(req.query.skip) || undefined;
@@ -87,10 +73,11 @@ router.post("/", async (req, res) => {
       expiresIn: "1h",
     });
     res.status(201).json({ status: "success", user: created });
-    transporter.sendMail(
+    mailer.sendMail(
       {
         to: user.email,
         from: MAIL_USER,
+        subject: "Verificación de correo electrónico",
         html: `<p>Para verificar su correo electrónico pinche <a href=${HOST}/verify?token=${token}>aquí</a></p>`,
       },
       function (err: any) {
