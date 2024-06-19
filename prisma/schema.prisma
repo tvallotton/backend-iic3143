@@ -59,18 +59,18 @@ model Review {
   reviewedUser   User         @relation("ReviewsReceived", fields: [reviewedUserId], references: [id])
   reviewedUserId String       @db.Uuid()
   publication    Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
-  publicationId  String?       @db.Uuid()
+  publicationId  String?      @db.Uuid()
   createdAt      DateTime     @default(now())
 }
 
 model PublicationInteraction {
   id            String            @id @default(uuid()) @db.Uuid()
-  publication   Publication       @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  publicationId String            @db.Uuid()
+  publication   Publication?      @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  publicationId String?           @db.Uuid()
   user          User              @relation(fields: [userId], references: [id])
   userId        String            @db.Uuid()
   createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt @default(now())
+  updatedAt     DateTime          @default(now()) @updatedAt
   status        InteractionStatus @default(VIEWED)
   emailSent     Boolean           @default(false)
 
