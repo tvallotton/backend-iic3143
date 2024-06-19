@@ -219,10 +219,15 @@ router.delete("/:id", user({ adminsOnly: true }), async (req, res) => {
 // Interactions
 
 router.get("/interactions", user(), async (req, res) => {
-  const { id } = req.params;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(500).json({ error: "Internal server error" });
+  }
+
   const interactions = await prisma.publicationInteraction.findMany({
     where: {
-      userId: id,
+      userId,
     },
   });
   res.json(interactions);
