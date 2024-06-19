@@ -229,6 +229,9 @@ router.get("/interactions", user(), async (req, res) => {
     where: {
       userId,
     },
+    include: {
+      publication: true,
+    },
   });
   res.json(interactions);
 });
