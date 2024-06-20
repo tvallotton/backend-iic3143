@@ -26,14 +26,9 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
   res.json({ users });
 });
 
-router.get("/me", user(), async (req: any, res: any) => {
-  const user = req.user;
-  delete (user as any)?.password;
-  res.status(200).json({ user });
-});
-
 router.get("/interactions", user(), async (req, res) => {
   const userId = req.user?.id;
+
   if (!userId) {
     return res.status(500).json({ error: "Internal server error" });
   }
@@ -41,12 +36,51 @@ router.get("/interactions", user(), async (req, res) => {
   const interactions = await prisma.publicationInteraction.findMany({
     where: {
       userId,
+      publicationId: {
+        not: null,
+      },
     },
     include: {
       publication: true,
     },
   });
-  res.json(interactions);
+
+  const publicationIds = interactions.reduce<string[]>((acc, i) => {
+    if (i.publicationId !== null) {
+      acc.push(i.publicationId);
+    }
+    return acc;
+  }, []);
+
+  const othersInteractions = await prisma.publicationInteraction.findMany({
+    where: {
+      publicationId: {
+        in: publicationIds,
+      },
+      userId: {
+        not: userId,
+      },
+      status: "COMPLETED",
+    },
+  });
+
+  const completedPublications = othersInteractions.map(
+    (oi) => oi.publicationId
+  );
+
+  const filteredInteractions = interactions.filter(
+    (i) =>
+      // Se filtran interacciones de publicaciones completadas por otros usuarios
+      !completedPublications.includes(i.publicationId)
+  );
+
+  res.json(filteredInteractions);
+});
+
+router.get("/me", user(), async (req: any, res: any) => {
+  const user = req.user;
+  delete (user as any)?.password;
+  res.status(200).json({ user });
 });
 
 router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
@@ -77,7 +111,6 @@ router.post("/", async (req, res) => {
     }
     user.password = await argon2.hash(user.password);
     user.email = user.email.toLowerCase();
-    user.birthdate = new Date(user.birthdate?.toString() || "");
     if (!user.email.match(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/)) {
       res.status(400);
       res.json(errors.INVALID_EMAIL);
