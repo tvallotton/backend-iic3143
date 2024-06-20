@@ -14,51 +14,68 @@ datasource db {
 }
 
 model User {
-  id              String        @id @default(uuid()) @db.Uuid()
-  email           String        @unique @db.VarChar(320)
-  password        String        @db.VarChar(255)
-  name            String        @default("") @db.VarChar(32)
-  lastName        String        @default("") @db.VarChar(32)
-  birthdate       DateTime?
-  publications    Publication[]
-  isAdmin         Boolean       @default(false)
-  isValidated     Boolean       @default(false)
-  createdAt       DateTime      @default(now())
-  ReviewsGiven    Review[]      @relation("ReviewsGiven")
-  ReviewsReceived Review[]      @relation("ReviewsReceived")
+  id                     String                   @id @default(uuid()) @db.Uuid()
+  email                  String                   @unique @db.VarChar(320)
+  password               String                   @db.VarChar(255)
+  name                   String                   @default("") @db.VarChar(32)
+  lastName               String                   @default("") @db.VarChar(32)
+  birthdate              DateTime?
+  publications           Publication[]
+  isAdmin                Boolean                  @default(false)
+  isValidated            Boolean                  @default(false)
+  createdAt              DateTime                 @default(now())
+  ReviewsGiven           Review[]                 @relation("ReviewsGiven")
+  ReviewsReceived        Review[]                 @relation("ReviewsReceived")
+  PublicationInteraction PublicationInteraction[]
 }
 
 model Publication {
-  id          String          @id @default(uuid()) @db.Uuid()
-  title       String          @db.VarChar(255)
-  author      String          @db.VarChar(255)
-  language    String          @db.VarChar(32)
-  genres      String[]        @db.VarChar(64)
-  bookState   BookState
-  description String
-  type        PublicationType
-  price       Int
-  image       String
-  bookId      String          @db.VarChar(64)
-  owner       User            @relation(fields: [ownerId], references: [id])
-  ownerId     String          @db.Uuid()
-  available   Boolean         @default(true)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  Review      Review[]
+  id                     String                   @id @default(uuid()) @db.Uuid()
+  title                  String                   @db.VarChar(255)
+  author                 String                   @db.VarChar(255)
+  language               String                   @db.VarChar(32)
+  genres                 String[]                 @db.VarChar(64)
+  bookState              BookState
+  description            String
+  type                   PublicationType
+  status                 PublicationStatus        @default(AVAILABLE)
+  price                  Int
+  image                  String
+  bookId                 String                   @db.VarChar(64)
+  owner                  User                     @relation(fields: [ownerId], references: [id])
+  ownerId                String                   @db.Uuid()
+  available              Boolean                  @default(true)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  Review                 Review[]
+  PublicationInteraction PublicationInteraction[]
 }
 
 model Review {
-  id             String      @id @default(uuid()) @db.Uuid()
+  id             String       @id @default(uuid()) @db.Uuid()
   rating         Int
   comment        String
-  user           User        @relation("ReviewsGiven", fields: [userId], references: [id])
-  userId         String      @db.Uuid()
-  reviewedUser   User        @relation("ReviewsReceived", fields: [reviewedUserId], references: [id])
-  reviewedUserId String      @db.Uuid()
-  publication    Publication @relation(fields: [publicationId], references: [id])
-  publicationId  String      @db.Uuid()
-  createdAt      DateTime    @default(now())
+  user           User         @relation("ReviewsGiven", fields: [userId], references: [id])
+  userId         String       @db.Uuid()
+  reviewedUser   User         @relation("ReviewsReceived", fields: [reviewedUserId], references: [id])
+  reviewedUserId String       @db.Uuid()
+  publication    Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  publicationId  String?      @db.Uuid()
+  createdAt      DateTime     @default(now())
+}
+
+model PublicationInteraction {
+  id            String            @id @default(uuid()) @db.Uuid()
+  publication   Publication?      @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  publicationId String?           @db.Uuid()
+  user          User              @relation(fields: [userId], references: [id])
+  userId        String            @db.Uuid()
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @default(now()) @updatedAt
+  status        InteractionStatus @default(VIEWED)
+  emailSent     Boolean           @default(false)
+
+  @@unique([publicationId, userId])
 }
 
 enum BookState {
@@ -72,4 +89,14 @@ enum PublicationType {
   SELL
   TRADE
   SELL_TRADE
+}
+
+enum PublicationStatus {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum InteractionStatus {
+  VIEWED
+  COMPLETED
 }
