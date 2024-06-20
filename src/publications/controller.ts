@@ -18,13 +18,19 @@ const publicationTypes = {
   "Venta/Permuta": "SELL_TRADE",
 } as const;
 
-export const getAllPublications = (_req: Request, res: Response) => {
+const publicationStates = {
+  Activa: "AVAILABLE",
+  Cerrada: "UNAVAILABLE",
+} as const;
+
+export const getAllPublications = (req: Request, res: Response) => {
   prisma.publication
     .findMany({
+      where: req.user?.isAdmin ? {} : { status: publicationStates.Activa },
       include: {
         owner: {
           select: {
-            name: true, // Only select the name field
+            name: true,
           },
         },
       },
@@ -135,10 +141,11 @@ export const createPublication = (req: Request, res: Response) => {
 
 export const updatePublication = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { description, state, type, language, price } = req.body;
+  const { description, state, status, type, language, price } = req.body;
   const updateData = {
     description,
     state,
+    status,
     type,
     language,
     price,
@@ -173,6 +180,7 @@ export const updatePublication = async (req: Request, res: Response) => {
           updateData.type as keyof typeof publicationTypes
         ],
         bookState: booksStates[updateData.state as keyof typeof booksStates],
+        status: publicationStates[updateData.status as keyof typeof publicationStates],
       },
     });
 
@@ -382,7 +390,7 @@ export const getInteractions = async (req: Request, res: Response) => {
 };
 
 export const completeInteraction = async (req: Request, res: Response) => {
-  const { interactionId } = req.params;
+  const { id: interactionId } = req.params;
 
   const userId = req.user?.id;
 
