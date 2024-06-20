@@ -21,6 +21,8 @@ const mockArgonVerify = jest.fn();
 const mockJwtVerify = jest.fn();
 const mockUpdate = jest.fn();
 
+const mockInteractionFindMany = jest.fn();
+
 jest.mock('argon2', () => ({
   hash: jest.fn().mockResolvedValue('hashedPassword'),
   verify: () => mockArgonVerify(),
@@ -64,6 +66,9 @@ jest.mock('@prisma/client', () => {
         create: () => mockCreate(),
         delete: () => mockDelete(),
         update: () => mockUpdate(),
+      },
+      publicationInteraction: {
+        findMany: () => mockInteractionFindMany(),
       },
     })),
   };
@@ -462,5 +467,32 @@ describe('POST /verify', () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toEqual(errors.TOKEN_EXPIRED);
+  });
+});
+
+describe('GET /interactions', () => {
+
+  it('should return filtered interactions for user', async () => {
+    const userInteractions = [
+      { id: 1, userId: userId1, publicationId: 1, type: 'trade' },
+      { id: 2, userId: userId1, publicationId: 2, type: 'buy' },
+    ];
+
+    const othersInteractions = [
+      { id: 3, userId: '123', publicationId: 1, status: 'COMPLETED' },
+    ];
+    mockJwtVerify.mockReturnValueOnce({ id: userId1 });
+    mockInteractionFindMany.mockResolvedValueOnce(userInteractions);
+    mockInteractionFindMany.mockResolvedValueOnce(othersInteractions);
+
+    const response = await request(app)
+      .get('/user/interactions')
+      .set('Authorization', 'Bearer test_token');
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toHaveLength(1); 
+    expect(response.body[0]).toEqual(
+      expect.objectContaining({ id: 2, userId: userId1, publicationId: 2, type: 'buy' })
+    );
   });
 });
