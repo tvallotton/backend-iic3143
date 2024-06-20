@@ -6,7 +6,7 @@ import {
   getReviewsReceived,
   getReviewsGiven,
   getUserRating,
-} from "./controller.js";
+} from "./controller";
 import { user } from "../user/middleware";
 
 const router = express.Router();
