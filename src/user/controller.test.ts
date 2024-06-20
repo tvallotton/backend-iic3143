@@ -471,6 +471,9 @@ describe('POST /verify', () => {
 });
 
 describe('GET /interactions', () => {
+  beforeAll(() => {
+    jest.resetAllMocks();
+  });
 
   it('should return filtered interactions for user', async () => {
     const userInteractions = [
@@ -482,6 +485,7 @@ describe('GET /interactions', () => {
       { id: 3, userId: '123', publicationId: 1, status: 'COMPLETED' },
     ];
     mockJwtVerify.mockReturnValueOnce({ id: userId1 });
+    mockFindFirst.mockResolvedValueOnce({ isAdmin: true, id: userId1 });
     mockInteractionFindMany.mockResolvedValueOnce(userInteractions);
     mockInteractionFindMany.mockResolvedValueOnce(othersInteractions);
 
@@ -490,9 +494,41 @@ describe('GET /interactions', () => {
       .set('Authorization', 'Bearer test_token');
 
     expect(response.statusCode).toBe(200);
-    expect(response.body).toHaveLength(1); 
+    expect(response.body).toHaveLength(1);
     expect(response.body[0]).toEqual(
       expect.objectContaining({ id: 2, userId: userId1, publicationId: 2, type: 'buy' })
     );
+  });
+
+  it('should handle error if user id is not found', async () => {
+    mockJwtVerify.mockReturnValueOnce({ isAdmin: true });
+    mockFindFirst.mockResolvedValueOnce({ isAdmin: true });
+
+    const response = await request(app)
+      .get('/user/interactions')
+      .set('Authorization', 'Bearer test_token');
+
+    expect(response.statusCode).toBe(500);
+    expect(response.body).toEqual({ error: 'Internal server error' });
+  });
+});
+
+describe("GET /:id/interactions", () => {
+  it('should return interactions for the user', async () => {
+    const interactions = [
+      { id: 1, userId: userId1, publicationId: 1, type: 'trade' },
+      { id: 2, userId: userId1, publicationId: 2, type: 'buy' },
+    ];
+
+    mockJwtVerify.mockReturnValueOnce({ id: userId1 });
+    mockFindFirst.mockResolvedValueOnce({ isAdmin: true, id: userId1 });
+    mockInteractionFindMany.mockResolvedValueOnce(interactions);
+
+    const response = await request(app)
+      .get(`/user/${userId1}/interactions`)
+      .set('Authorization', 'Bearer test_token');
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toEqual(interactions);
   });
 });

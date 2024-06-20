@@ -28,7 +28,7 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
 
 router.get("/interactions", user(), async (req, res) => {
   const userId = req.user?.id;
-
+  console.log(req.user)
   if (!userId) {
     return res.status(500).json({ error: "Internal server error" });
   }

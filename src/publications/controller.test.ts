@@ -145,7 +145,8 @@ describe('GET /publications/:id', () => {
     });
   });
 
-  it('should handle errors', async () => {
+
+  it('should handle unknown errors', async () => {
     mockPublicationFindUnique.mockRejectedValue(new Error('Database error'));
 
     const response = await request(app).get('/publications/32-2a7e-47df-a198-48e6caddf928');
@@ -259,6 +260,27 @@ describe('POST /publications', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual(mockPublication);
   });
+
+  it('should handle error if user id is not found', async () => {;
+    mockUserFindFirst.mockResolvedValueOnce({ isAdmin: true });
+    const response = await request(app)
+      .post('/publications')
+      .send({
+        title: 'Test Publication 1',
+        author: 'Test Author',
+        language: 'English',
+        genres: ['Genre1', 'Genre2'],
+        bookState: 'New',
+        description: 'This is a test publication',
+        type: 'Hardcover',
+        price: 10.0,
+        image: 'test_image.png',
+        bookId: '12345',
+      })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Internal server error' });
+  });
 });
 
 describe('PUT /publications/:id', () => {
@@ -288,6 +310,7 @@ describe('PUT /publications/:id', () => {
       title: 'New Title',
     });
   });
+
   it('should handle errors', async () => {
     const mockPublication = {
       id: 1,
@@ -342,6 +365,16 @@ describe('PUT /publications/:id', () => {
     const response = await request(app).put('/publications/1');
     expect(response.status).toBe(401);
     expect(response.body).toEqual({ message: 'Tienes que ingresar sesión para acceder a este recurso.' });
+  });
+
+  it('should handle error if user id is not found', async () => {
+    mockUserFindFirst.mockResolvedValue({ isAdmin: true });
+    const response = await request(app)
+      .put('/publications/ee786f25-460e-49f8-ab97-559e164d5230')
+      .send({ title: 'New Title' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Internal server error' });
   });
 });
 
@@ -403,6 +436,15 @@ describe('DELETE /publications/:id', () => {
     expect(response.status).toBe(401);
     expect(response.body).toEqual({ message: 'Tienes que ingresar sesión para acceder a este recurso.' });
   });
+
+  it('should handle error if user id is not found', async () => {
+    mockUserFindFirst.mockResolvedValue({ isAdmin: true });
+    const response = await request(app)
+      .delete('/publications/1')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Internal server error' });
+  });
 });
 
 describe('POST /publications/:id/interactions', () => {
@@ -439,6 +481,25 @@ describe('POST /publications/:id/interactions', () => {
       .set('Authorization', 'Bearer test_token');
     expect(response.status).toBe(201);
     expect(response.body.interaction.id).toEqual(mockInteraction.id);
+  })
+
+  it('should handle upsert error', async () => {
+    mockPublicationFindUnique.mockResolvedValue({
+      id: "1", title: 'Test Publication 1', owner: {
+        name: 'Test Owner 1',
+        email: 'owner@example.com'
+      }
+    });
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
+    mockSendMail.mockResolvedValue({ messageId: 'test_message_id' });
+    mockInteractionUpsert.mockRejectedValue(new Error('Unknown error'));
+    const response = await request(app)
+      .post('/publications/1/interactions')
+      .send({ type: 'like' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: "Unknown error" });
   })
 
   it('should handle error if no user id in request', async () => {
@@ -679,3 +740,28 @@ describe('PATCH /publications/interactions/:id', () => {
   });
 });
     
+describe('GET /genres', () => {
+  it('should return all genres', async () => {
+    const mockGenres = ['Genre1', 'Genre2', 'Genre3'];
+    mockPublicationFindMany.mockResolvedValue(
+      [
+        { id: 1, title: "Tes publication 1", genres: ['Genre1', 'Genre2'] },
+        { id: 2, title: "Tes publication 2", genres: ['Genre2', 'Genre3'] },
+        { id: 3, title: "Tes publication 3", genres: ['Genre1', 'Genre3'] },
+      ]
+    );
+    const response = await request(app).get('/publications/genres');
+    expect(response.status).toBe(200);
+    console.log(response.body)
+    expect(response.body).toEqual(mockGenres);
+  });
+
+  it('should handle errors', async () => {
+    mockPublicationFindMany.mockRejectedValue(new Error('Database error'));
+
+    const response = await request(app).get('/publications/genres');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ error: 'Database error' });
+  });
+});
