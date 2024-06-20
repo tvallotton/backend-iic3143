@@ -398,8 +398,6 @@ export const completeInteraction = async (req: Request, res: Response) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 
-  console.log(userId, interactionId)
-
   try {
     const interaction = await prisma.publicationInteraction.findUnique({
       where: { id: interactionId },
