@@ -378,6 +378,7 @@ export const getInteractions = async (req: Request, res: Response) => {
             name: true,
             lastName: true,
             email: true,
+            id: true,
           },
         },
       },
