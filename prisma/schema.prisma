@@ -38,6 +38,7 @@ model Publication {
   bookState              BookState
   description            String
   type                   PublicationType
+  status                 PublicationStatus        @default(AVAILABLE)
   price                  Int
   image                  String
   bookId                 String                   @db.VarChar(64)
@@ -88,6 +89,11 @@ enum PublicationType {
   SELL
   TRADE
   SELL_TRADE
+}
+
+enum PublicationStatus {
+  AVAILABLE
+  UNAVAILABLE
 }
 
 enum InteractionStatus {
