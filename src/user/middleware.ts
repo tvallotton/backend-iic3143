@@ -70,7 +70,6 @@ export function user(options?: Options) {
                     return next();
                 }
             } catch (e) {
-                // console.error(e);
                 return expired(res, next, options);
             }
         }

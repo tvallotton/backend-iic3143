@@ -288,7 +288,7 @@ export const createInteraction = async (req: Request, res: Response) => {
     const currentDate = new Date()
     const lastUpdate = new Date(interaction.updatedAt)
     const diff = currentDate.getTime() - lastUpdate.getTime()
-
+    console.log(diff, "dif")
     // If the last email was sent more than 2 days ago, reset the emailSent flag
     if (diff > 1000 * 60 * 60 * 24 * 2) {
       interaction = await prisma.publicationInteraction.update({
@@ -335,7 +335,6 @@ export const createInteraction = async (req: Request, res: Response) => {
           },
         });
       });
-
       return res.status(201).json({ interaction });
     }
 
@@ -394,7 +393,6 @@ export const completeInteraction = async (req: Request, res: Response) => {
   const { id: interactionId } = req.params;
 
   const userId = req.user?.id;
-
   if (!userId) {
     return res.status(500).json({ error: "Internal server error" });
   }
@@ -406,7 +404,6 @@ export const completeInteraction = async (req: Request, res: Response) => {
         publication: true,
       },
     });
-
     if (!interaction || !interaction.publication) {
       return res.status(404).json({ error: "Interaction or publication doesn't exist" });
     }
@@ -423,7 +420,6 @@ export const completeInteraction = async (req: Request, res: Response) => {
         status: "COMPLETED",
       },
     });
-
     res.json({ message: "Interaction completed successfully" });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
