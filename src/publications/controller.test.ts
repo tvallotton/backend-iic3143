@@ -2,12 +2,28 @@ import express from 'express';
 import request from 'supertest';
 import router from './routes';
 
-const mockFindMany = jest.fn();
-const mockFindUnique = jest.fn();
+const app = express();
+app.use(express.json());
+app.use('/publications', router);
+
+// publication
+const mockPublicationFindMany = jest.fn();
+const mockPublicationFindUnique = jest.fn();
+const mockPublicationCreate = jest.fn();
+const mockPublicationUpdate = jest.fn();
+const mockPublicationDelete = jest.fn();
+
+// others
 const mockJwtVerify = jest.fn();
-const mockCreate = jest.fn();
-const mockUpdate = jest.fn();
-const mockDelete = jest.fn();
+const mockUserFindFirst = jest.fn();
+const mockSendMail = jest.fn();
+
+// publication interaction
+const mockInteractionUpsert = jest.fn();
+const mockInteractionUpdate = jest.fn();
+const mockInteractionFindMany = jest.fn();
+const mockInteractionFindUnique = jest.fn();
+
 
 jest.mock('jsonwebtoken', () => {
   const originalModule = jest.requireActual('jsonwebtoken');
@@ -25,6 +41,13 @@ jest.mock('jsonwebtoken', () => {
   };
 });
 
+jest.mock('nodemailer', () => ({
+  createTransport: jest.fn().mockReturnValue({
+    sendMail: () => mockSendMail(),
+  }),
+}));
+
+
 jest.mock('@prisma/client', () => {
   const originalModule = jest.requireActual('@prisma/client');
 
@@ -33,19 +56,24 @@ jest.mock('@prisma/client', () => {
     ...originalModule,
     PrismaClient: jest.fn().mockImplementation(() => ({
       publication: {
-        findMany: () => mockFindMany(),
-        findUnique: () => mockFindUnique(),
-        create: () => mockCreate(),
-        update: () => mockUpdate(),
-        delete: () => mockDelete(),
+        findMany: () => mockPublicationFindMany(),
+        findUnique: () => mockPublicationFindUnique(),
+        create: () => mockPublicationCreate(),
+        update: () => mockPublicationUpdate(),
+        delete: () => mockPublicationDelete(),
       },
+      user: {
+        findFirst: () => mockUserFindFirst(),
+      },
+      publicationInteraction: {
+        upsert: () => mockInteractionUpsert(),
+        update: () => mockInteractionUpdate(),
+        findMany: () => mockInteractionFindMany(),
+        findUnique: () => mockInteractionFindUnique(),
+      }
     })),
   };
 });
-
-const app = express();
-app.use(express.json());
-app.use('/publications', router);
 
 describe('GET /publications', () => {
   it('should return all publications with their owners', async () => {
@@ -66,7 +94,7 @@ describe('GET /publications', () => {
       },
     ];
 
-    mockFindMany.mockResolvedValue(mockPublications);
+    mockPublicationFindMany.mockResolvedValue(mockPublications);
     const response = await request(app).get('/publications');
     expect(response.status).toBe(200);
     expect(response.body).toEqual([
@@ -88,7 +116,7 @@ describe('GET /publications', () => {
   });
 
   it('should handle errors', async () => {
-    mockFindMany.mockRejectedValue(new Error('Database error'));
+    mockPublicationFindMany.mockRejectedValue(new Error('Database error'));
 
     const response = await request(app).get('/publications');
 
@@ -107,7 +135,7 @@ describe('GET /publications/:id', () => {
       },
     };
 
-    mockFindUnique.mockResolvedValue(mockPublication);
+    mockPublicationFindUnique.mockResolvedValue(mockPublication);
     const response = await request(app).get('/publications/8101b88f-2a7e-47df-a198-48e6caddf928');
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
@@ -117,8 +145,9 @@ describe('GET /publications/:id', () => {
     });
   });
 
-  it('should handle errors', async () => {
-    mockFindUnique.mockRejectedValue(new Error('Database error'));
+
+  it('should handle unknown errors', async () => {
+    mockPublicationFindUnique.mockRejectedValue(new Error('Database error'));
 
     const response = await request(app).get('/publications/32-2a7e-47df-a198-48e6caddf928');
 
@@ -127,7 +156,7 @@ describe('GET /publications/:id', () => {
   });
 
   it('should return publication not found', async () => {
-    mockFindUnique.mockResolvedValue(null);
+    mockPublicationFindUnique.mockResolvedValue(null);
 
     const response = await request(app).get('/publications/1');
 
@@ -154,9 +183,9 @@ describe('POST /publications', () => {
         name: 'Test Owner 1',
       },
     };
-
-    mockJwtVerify.mockReturnValue({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60" });
-    mockCreate.mockResolvedValue(mockPublication);
+    mockJwtVerify.mockReturnValueOnce({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60" });
+    mockUserFindFirst.mockResolvedValue({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60", isAdmin: true });
+    mockPublicationCreate.mockResolvedValue(mockPublication);
     const response = await request(app)
       .post('/publications')
       .send({
@@ -179,12 +208,12 @@ describe('POST /publications', () => {
   it('should ask for a token', async () => {
     const response = await request(app).post('/publications');
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'No token provided' });
+    expect(response.body).toEqual({ message: 'Tienes que ingresar sesión para acceder a este recurso.' });
   });
 
   it('should handle errors', async () => {
     mockJwtVerify.mockReturnValue({ id: 1 });
-    mockCreate.mockRejectedValue(new Error('Unkown error'));
+    mockPublicationCreate.mockRejectedValue(new Error('Unkown error'));
 
     const response = await request(app)
       .post('/publications')
@@ -195,6 +224,27 @@ describe('POST /publications', () => {
 
   it('should create a publication with no price', async () => {
     const mockPublication = {
+      title: 'Test Publication 1',
+      author: 'Test Author',
+      language: 'English',
+      genres: ['Genre1', 'Genre2'],
+      bookState: 'New',
+      description: 'This is a test publication',
+      type: 'Hardcover',
+      price: 0,
+      image: 'test_image.png',
+      bookId: '12345',
+      id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60",
+      owner: {
+        name: 'Test Owner 1',
+      },
+    };
+
+    mockJwtVerify.mockReturnValue({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60" });
+    mockPublicationCreate.mockResolvedValue(mockPublication);
+    const response = await request(app)
+      .post('/publications')
+      .send({
         title: 'Test Publication 1',
         author: 'Test Author',
         language: 'English',
@@ -202,35 +252,35 @@ describe('POST /publications', () => {
         bookState: 'New',
         description: 'This is a test publication',
         type: 'Hardcover',
-        price: 0,
+        price: '',
         image: 'test_image.png',
         bookId: '12345',
-        id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60",
-        owner: {
-          name: 'Test Owner 1',
-        },
-      };
+      })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockPublication);
+  });
 
-      mockJwtVerify.mockReturnValue({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60" });
-      mockCreate.mockResolvedValue(mockPublication);
-      const response = await request(app)
-        .post('/publications')
-        .send({
-          title: 'Test Publication 1',
-          author: 'Test Author',
-          language: 'English',
-          genres: ['Genre1', 'Genre2'],
-          bookState: 'New',
-          description: 'This is a test publication',
-          type: 'Hardcover',
-          price: '',
-          image: 'test_image.png',
-          bookId: '12345',
-        })
-        .set('Authorization', 'Bearer test_token');
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual(mockPublication);
-    });
+  it('should handle error if user id is not found', async () => {;
+    mockUserFindFirst.mockResolvedValueOnce({ isAdmin: true });
+    const response = await request(app)
+      .post('/publications')
+      .send({
+        title: 'Test Publication 1',
+        author: 'Test Author',
+        language: 'English',
+        genres: ['Genre1', 'Genre2'],
+        bookState: 'New',
+        description: 'This is a test publication',
+        type: 'Hardcover',
+        price: 10.0,
+        image: 'test_image.png',
+        bookId: '12345',
+      })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Internal server error' });
+  });
 });
 
 describe('PUT /publications/:id', () => {
@@ -243,9 +293,10 @@ describe('PUT /publications/:id', () => {
       },
       ownerId: "6ee3c6c6-22df-42b3-9e05-cce441843382",
     };
-    mockFindUnique.mockResolvedValueOnce(mockPublication);
+    mockPublicationFindUnique.mockResolvedValueOnce(mockPublication);
+    mockUserFindFirst.mockResolvedValue({ id: "6ee3c6c6-22df-42b3-9e05-cce441843382", isAdmin: true });
     mockJwtVerify.mockReturnValue({ id: "6ee3c6c6-22df-42b3-9e05-cce441843382" });
-    mockUpdate.mockResolvedValue({
+    mockPublicationUpdate.mockResolvedValue({
       ...mockPublication,
       title: 'New Title',
     });
@@ -259,6 +310,7 @@ describe('PUT /publications/:id', () => {
       title: 'New Title',
     });
   });
+
   it('should handle errors', async () => {
     const mockPublication = {
       id: 1,
@@ -266,11 +318,12 @@ describe('PUT /publications/:id', () => {
       owner: {
         name: 'Test Owner 1',
       },
-      ownerId: 1,
+      ownerId: "6ee3c6c6-22df-42b3-9e05-cce441843382",
     };
-    mockFindUnique.mockResolvedValueOnce(mockPublication);
-    mockUpdate.mockRejectedValue(new Error('Unkown error'));
-    mockJwtVerify.mockReturnValue({ id: 1 });
+    mockPublicationFindUnique.mockResolvedValueOnce(mockPublication);
+    mockPublicationUpdate.mockRejectedValue(new Error('Unkown error'));
+    mockJwtVerify.mockReturnValue({ id: "6ee3c6c6-22df-42b3-9e05-cce441843382" });
+    mockUserFindFirst.mockResolvedValue({ id: "6ee3c6c6-22df-42b3-9e05-cce441843382", isAdmin: true });
     const response = await request(app)
       .put('/publications/1')
       .set('Authorization', 'Bearer test_token');
@@ -279,7 +332,7 @@ describe('PUT /publications/:id', () => {
   });
 
   it('should return publication not found', async () => {
-    mockFindUnique.mockResolvedValue(null);
+    mockPublicationFindUnique.mockResolvedValue(null);
     mockJwtVerify.mockReturnValue({ id: 1 });
     const response = await request(app)
       .put('/publications/1')
@@ -297,7 +350,7 @@ describe('PUT /publications/:id', () => {
       },
       ownerId: 2,
     };
-    mockFindUnique.mockResolvedValueOnce(mockPublication);
+    mockPublicationFindUnique.mockResolvedValueOnce(mockPublication);
     mockJwtVerify.mockReturnValue({ id: 1 });
     const response = await request(app)
       .put('/publications/1')
@@ -311,7 +364,17 @@ describe('PUT /publications/:id', () => {
   it('should ask for a token', async () => {
     const response = await request(app).put('/publications/1');
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'No token provided' });
+    expect(response.body).toEqual({ message: 'Tienes que ingresar sesión para acceder a este recurso.' });
+  });
+
+  it('should handle error if user id is not found', async () => {
+    mockUserFindFirst.mockResolvedValue({ isAdmin: true });
+    const response = await request(app)
+      .put('/publications/ee786f25-460e-49f8-ab97-559e164d5230')
+      .send({ title: 'New Title' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Internal server error' });
   });
 });
 
@@ -323,11 +386,12 @@ describe('DELETE /publications/:id', () => {
       owner: {
         name: 'Test Owner 1',
       },
-      ownerId: 1,
+      ownerId: "5da23d04-986f-4104-84f3-ce933d58ea64",
     };
-    mockFindUnique.mockResolvedValueOnce(mockPublication);
-    mockJwtVerify.mockReturnValue({ id: 1 });
-    mockDelete.mockResolvedValue({ message: 'Publication deleted successfully' });
+    mockPublicationFindUnique.mockResolvedValueOnce(mockPublication);
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
+    mockPublicationDelete.mockResolvedValue({ message: 'Publication deleted successfully' });
     const response = await request(app)
       .delete('/publications/1')
       .set('Authorization', 'Bearer test_token');
@@ -344,9 +408,10 @@ describe('DELETE /publications/:id', () => {
       },
       ownerId: "5da23d04-986f-4104-84f3-ce933d58ea64",
     };
-    mockFindUnique.mockResolvedValueOnce(mockPublication);
-    mockDelete.mockRejectedValue(new Error('Unkown error'));
+    mockPublicationFindUnique.mockResolvedValueOnce(mockPublication);
+    mockPublicationDelete.mockRejectedValue(new Error('Unkown error'));
     mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
     const response = await request(app)
       .delete('/publications/53358c00-6ada-4592-8f56-1e0ba30ed087')
       .set('Authorization', 'Bearer test_token');
@@ -355,7 +420,7 @@ describe('DELETE /publications/:id', () => {
   });
 
   it('should return publication not found', async () => {
-    mockFindUnique.mockResolvedValue(null);
+    mockPublicationFindUnique.mockResolvedValue(null);
     mockJwtVerify.mockReturnValue({ id: 1 });
     const response = await request(app)
       .delete('/publications/1')
@@ -369,6 +434,334 @@ describe('DELETE /publications/:id', () => {
   it('should ask for a token', async () => {
     const response = await request(app).delete('/publications/1');
     expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'No token provided' });
+    expect(response.body).toEqual({ message: 'Tienes que ingresar sesión para acceder a este recurso.' });
+  });
+
+  it('should handle error if user id is not found', async () => {
+    mockUserFindFirst.mockResolvedValue({ isAdmin: true });
+    const response = await request(app)
+      .delete('/publications/1')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: 'Internal server error' });
+  });
+});
+
+describe('POST /publications/:id/interactions', () => {
+  it('should create a new interaction and send email', async () => {
+    const mockInteraction = {
+      id: "1",
+      type: 'trade',
+      user: {
+        name: 'Test User 1',
+        email: 'test@example.com'
+      },
+      publication: {
+        title: 'Test Publication 1',
+      },
+      updatedAt: new Date(),
+    };
+    mockPublicationFindUnique.mockResolvedValue({
+      id: "1", title: 'Test Publication 1', owner: {
+        name: 'Test Owner 1',
+        email: 'owner@example.com'
+      }
+    });
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
+    mockSendMail.mockResolvedValue({ messageId: 'test_message_id' });
+    mockInteractionUpsert.mockResolvedValue(mockInteraction);
+    mockInteractionUpdate.mockResolvedValue({
+      ...mockInteraction, updatedAt: new Date(),
+      emailSent: true,
+    });
+    const response = await request(app)
+      .post('/publications/1/interactions')
+      .send({ type: 'like' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(201);
+    expect(response.body.interaction.id).toEqual(mockInteraction.id);
+  })
+
+  it('should handle upsert error', async () => {
+    mockPublicationFindUnique.mockResolvedValue({
+      id: "1", title: 'Test Publication 1', owner: {
+        name: 'Test Owner 1',
+        email: 'owner@example.com'
+      }
+    });
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
+    mockSendMail.mockResolvedValue({ messageId: 'test_message_id' });
+    mockInteractionUpsert.mockRejectedValue(new Error('Unknown error'));
+    const response = await request(app)
+      .post('/publications/1/interactions')
+      .send({ type: 'like' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: "Unknown error" });
+  })
+
+  it('should handle error if no user id in request', async () => {
+    const mockInteraction = {
+      id: "1",
+      type: 'trade',
+      user: {
+        name: 'Test User 1',
+        email: 'test@example.com'
+      },
+      publication: {
+        title: 'Test Publication 1',
+      },
+      updatedAt: new Date(),
+    };
+    mockPublicationFindUnique.mockResolvedValue({
+      id: "1", title: 'Test Publication 1', owner: {
+        name: 'Test Owner 1',
+        email: 'owner@example.com'
+      }
+    });
+    mockUserFindFirst.mockResolvedValue({ isAdmin: true });
+    mockSendMail.mockResolvedValue({ messageId: 'test_message_id' });
+    mockInteractionUpsert.mockResolvedValue(mockInteraction);
+    mockInteractionUpdate.mockResolvedValue({
+      ...mockInteraction, updatedAt: new Date(),
+      emailSent: true,
+    });
+    const response = await request(app)
+      .post('/publications/1/interactions')
+      .send({ type: 'like' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: "Internal server error" });
+  });
+
+  it('should handle error if no publication found', async () => {
+    mockPublicationFindUnique.mockResolvedValue(null);
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
+    mockSendMail.mockResolvedValue({ messageId: 'test_message_id' });
+    const response = await request(app)
+      .post('/publications/1/interactions')
+      .send({ type: 'like' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(404);
+  });
+
+  it('should handle error if owner id is the same as user id', async () => {
+    mockPublicationFindUnique.mockResolvedValue({
+      id: "1",
+      title: 'Test Publication 1',
+      ownerId: "5da23d04-986f-4104-84f3-ce933d58ea64",
+      owner: {
+        name: 'Test Owner 1',
+        email: 'owner@example.com',
+      }
+    });
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true });
+    mockSendMail.mockResolvedValue({ messageId: 'test_message_id' });
+    const response = await request(app)
+      .post('/publications/1/interactions')
+      .send({ type: 'like' })
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: "You can't interact with your own publication" });
+  });
+});
+
+describe('GET /publications/:id/interactions', () => {
+  it('should return all interactions of a publication', async () => {
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true })
+    mockPublicationFindUnique.mockResolvedValue({
+      id: "1",
+      title: 'Test Publication 1',
+      owner: {
+        name: 'Test Owner 1',
+      }
+    });
+    const mockInteractions = [
+      {
+        id: "1", user: { name: 'Test User 1' }, publication: { title: 'Test Publication 1' },
+      },
+      {
+        id: "2", user: { name: 'Test User 2' }, publication: { title: 'Test Publication 1' },
+      },
+    ];
+    mockInteractionFindMany.mockResolvedValue(mockInteractions);
+    const response = await request(app)
+      .get('/publications/1/interactions')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(mockInteractions);
+  });
+
+  it('should handle error if user id not available', async () => {
+    mockUserFindFirst.mockResolvedValue({ isAdmin: true })
+    const response = await request(app)
+      .get('/publications/1/interactions')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: "Internal server error" });
+  });
+  
+  it('should handle error if publication not found', async () => {
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true })
+    mockPublicationFindUnique.mockResolvedValue(null);
+    const response = await request(app)
+      .get('/publications/1/interactions')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: "Publication doesn't exist" });
+  });
+
+  it('should handle error if user id is not admin', async () => {
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: false })
+    mockPublicationFindUnique.mockResolvedValue({
+      id: "1",
+      title: 'Test Publication 1',
+      owner: {
+        name: 'Test Owner 1',
+      }
+    });
+    const mockInteractions = [
+      {
+        id: "1", user: { name: 'Test User 1' }, publication: { title: 'Test Publication 1' },
+      },
+      {
+        id: "2", user: { name: 'Test User 2' }, publication: { title: 'Test Publication 1' },
+      },
+    ];
+    mockInteractionFindMany.mockResolvedValue(mockInteractions);
+    const response = await request(app)
+      .get('/publications/1/interactions')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({ error: "You don't have permission to see this publication interactions" });
+  });
+
+  it('should handle internal server error if find failed', async () => {
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true })
+    mockPublicationFindUnique.mockResolvedValue({
+      id: "1",
+      title: 'Test Publication 1',
+      owner: {
+        name: 'Test Owner 1',
+      }
+    });
+    mockInteractionFindMany.mockRejectedValue(new Error('Unknown error'));
+    const response = await request(app)
+      .get('/publications/1/interactions')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({ error: "Unknown error" });
+  });
+});
+
+describe('PATCH /publications/interactions/:id', () => {
+  it('should complete the publication', async () => {
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true })
+    mockInteractionFindUnique.mockResolvedValue({
+      id: "1", type: 'trade', publicationId: "1", userId: "2",
+      publication: { title: 'Test Publication 1', ownerId: "5da23d04-986f-4104-84f3-ce933d58ea64" },
+    });
+    mockInteractionUpdate.mockResolvedValue({
+      id: "1", type: 'trade', publicationId: "1", userId: "2",
+      publication: { title: 'Test Publication 1' },
+      status: "COMPLETED"
+    });
+    const response = await request(app)
+      .patch('/publications/interactions/1')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({message: 'Interaction completed successfully'});
+  });
+
+  it('should handle error if user id is not the same as owner id', async () => {
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true })
+    mockInteractionFindUnique.mockResolvedValue({
+      id: "1", type: 'trade', publicationId: "1", userId: "2",
+      publication: { title: 'Test Publication 1', ownerId: "1" },
+    });
+    mockInteractionUpdate.mockResolvedValue({
+      id: "1", type: 'trade', publicationId: "1", userId: "2",
+      publication: { title: 'Test Publication 1' },
+      status: "COMPLETED"
+    });
+    const response = await request(app)
+      .patch('/publications/interactions/1')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(403);
+    expect(response.body).toEqual({error: "You don't have permission to complete this interaction"});
+  });
+
+  it('should handle error if user id is not the same as owner id', async () => {
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true })
+    mockInteractionFindUnique.mockResolvedValue({
+      id: "1", type: 'trade', publicationId: "1", userId: "2",
+      publication: { title: 'Test Publication 1', ownerId: "5da23d04-986f-4104-84f3-ce933d58ea64" },
+    });
+    mockInteractionUpdate.mockRejectedValue(new Error('Unknown error'));
+    const response = await request(app)
+      .patch('/publications/interactions/1')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({error: "Unknown error"});
+  });
+
+  it('should handle error if publication doesnt exist', async () => {
+    mockJwtVerify.mockReturnValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64" });
+    mockUserFindFirst.mockResolvedValue({ id: "5da23d04-986f-4104-84f3-ce933d58ea64", isAdmin: true })
+    mockInteractionFindUnique.mockResolvedValue({
+      id: "1", type: 'trade', publicationId: "1", userId: "2",
+      publication: null,
+    });
+    const response = await request(app)
+      .patch('/publications/interactions/1')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({error: "Interaction or publication doesn't exist"});
+  });
+
+  it('should handle error if user id is unavailable', async () => {
+    mockUserFindFirst.mockResolvedValue({ isAdmin: true })
+    const response = await request(app)
+      .patch('/publications/interactions/1')
+      .set('Authorization', 'Bearer test_token');
+    expect(response.status).toBe(500);
+    expect(response.body).toEqual({error: "Internal server error"});
+  });
+});
+    
+describe('GET /genres', () => {
+  it('should return all genres', async () => {
+    const mockGenres = ['Genre1', 'Genre2', 'Genre3'];
+    mockPublicationFindMany.mockResolvedValue(
+      [
+        { id: 1, title: "Tes publication 1", genres: ['Genre1', 'Genre2'] },
+        { id: 2, title: "Tes publication 2", genres: ['Genre2', 'Genre3'] },
+        { id: 3, title: "Tes publication 3", genres: ['Genre1', 'Genre3'] },
+      ]
+    );
+    const response = await request(app).get('/publications/genres');
+    expect(response.status).toBe(200);
+    console.log(response.body)
+    expect(response.body).toEqual(mockGenres);
+  });
+
+  it('should handle errors', async () => {
+    mockPublicationFindMany.mockRejectedValue(new Error('Database error'));
+
+    const response = await request(app).get('/publications/genres');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ error: 'Database error' });
   });
 });

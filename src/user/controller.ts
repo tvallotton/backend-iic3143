@@ -1,10 +1,10 @@
 import { PrismaClient, User } from "@prisma/client";
+import argon2 from "argon2";
 import { Router } from "express";
 import jwt from "jsonwebtoken";
-import argon2 from "argon2";
-import { JWT_SECRET, user } from "./middleware";
 import errors from "../errors";
 import mailer, { MAIL_USER } from "../mailer";
+import { JWT_SECRET, user } from "./middleware";
 
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 
@@ -28,7 +28,7 @@ router.get("/", user({ adminsOnly: true }), async (req, res) => {
 
 router.get("/interactions", user(), async (req, res) => {
   const userId = req.user?.id;
-
+  console.log(req.user)
   if (!userId) {
     return res.status(500).json({ error: "Internal server error" });
   }
@@ -86,7 +86,7 @@ router.get("/me", user(), async (req: any, res: any) => {
 router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
   const { id } = req.params;
   const user = await prisma.user.findFirst({
-    where: { id: id },
+    where: { id },
   });
   if (user === null) {
     return res.status(404).json(errors.USER_NOT_FOUND);
@@ -144,7 +144,6 @@ router.post("/", async (req, res) => {
       res.json(errors.USER_ALREADY_EXISTS);
       return;
     }
-    console.error(e);
     res.status(400);
     res.json(errors.UNKOWN_ERROR_CREATE_USER);
   }
@@ -173,7 +172,6 @@ router.post("/login", async (req, res) => {
     res.json(errors.INCORRECT_PASSWORD);
     return;
   }
-  console.log(user.id);
   const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: "48h" });
   res.setHeader("authorization", token);
   res.json({ authorization: token });
@@ -218,7 +216,6 @@ router.post("/verify", async (req, res) => {
     if (e instanceof jwt.JsonWebTokenError) {
       res.status(401).json(errors.TOKEN_EXPIRED);
     } else {
-      console.error(e);
       res.status(500).json(errors.INTERNAL_SERVER);
     }
   }
@@ -268,7 +265,6 @@ router.delete("/:id", user({ adminsOnly: true }), async (req, res) => {
 });
 
 // Interactions
-
 router.get(
   "/:id/interactions",
   user({ adminsOnly: true }),
