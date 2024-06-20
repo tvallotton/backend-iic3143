@@ -195,8 +195,13 @@ export const deletePublication = async (req: Request, res: Response) => {
     const publication = await prisma.publication.findUnique({
       where: { id },
     });
+      if (!publication) {
+        return res.status(404).json({
+            error: "The publication was not found."
+        })
+      }
 
-    if (!publication || publication.ownerId !== userId) {
+    if (publication.ownerId !== userId && !req.user?.isAdmin) {
       return res.status(403).json({
         error: "You don't have permission to delete this publication",
       });
