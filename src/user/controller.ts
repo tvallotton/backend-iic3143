@@ -83,11 +83,18 @@ router.get("/me", user(), async (req: any, res: any) => {
   res.status(200).json({ user });
 });
 
-router.get("/:id", user({ adminsOnly: true }), async (req, res) => {
+router.get("/:id", user(), async (req, res) => {
   const { id } = req.params;
+  const isAdmin = req.user?.isAdmin;
+
   const user = await prisma.user.findFirst({
     where: { id },
+    select: isAdmin ? undefined : {
+      id: true,
+      name: true,
+    },
   });
+
   if (user === null) {
     return res.status(404).json(errors.USER_NOT_FOUND);
   }
