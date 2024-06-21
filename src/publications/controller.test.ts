@@ -201,7 +201,7 @@ describe('POST /publications', () => {
                 bookId: '12345',
             })
             .set('Authorization', 'Bearer test_token');
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(201);
         expect(response.body).toEqual(mockPublication);
     });
 
@@ -218,7 +218,7 @@ describe('POST /publications', () => {
         const response = await request(app)
             .post('/publications')
             .set('Authorization', 'Bearer invalid_token');
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(500);
         expect(response.body).toEqual({ error: 'Unkown error' });
     });
 
@@ -257,7 +257,7 @@ describe('POST /publications', () => {
                 bookId: '12345',
             })
             .set('Authorization', 'Bearer test_token');
-        expect(response.status).toBe(200);
+        expect(response.status).toBe(201);
         expect(response.body).toEqual(mockPublication);
     });
 
