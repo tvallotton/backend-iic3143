@@ -3,7 +3,7 @@
         "esModuleInterop": true,
         "target": "ES2020",
         "useDefineForClassFields": true,
-        "module": "ESNext",
+        "module": "NodeNext",
         "lib": [
             "ES2020",
             "DOM",
@@ -11,7 +11,7 @@
         ],
         "skipLibCheck": true,
         /* Bundler mode */
-        "moduleResolution": "bundler",
+        // "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,
         // "allowImportingTsExtensions": true,
@@ -27,6 +27,9 @@
         "src/main.ts",
     ],
     "include": [
-        "src"
+        "src/*.ts"
     ],
+    "exclude": [
+        "**.test.ts"
+    ]
 }

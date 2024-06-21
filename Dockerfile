@@ -8,11 +8,6 @@ FROM node as prod
 WORKDIR /home/app
 COPY . .
 
-ENV DB_HOST=postgres
-ENV DB_PORT=5432
-ENV DB_USER=user
-ENV DB_PASSWORD=password
-ENV DB_NAME=pagepals-db
 
 RUN npm i
 RUN npm run build

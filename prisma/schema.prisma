@@ -5,44 +5,98 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-    // [TODO]: Debería ser UUID
-    id           Int           @id @default(autoincrement())
-    email        String        @unique
-    password     String
-    name         String        @default("")
-    lastName     String        @default("")
-    birthdate    DateTime?
-    publications Publication[]
-    isAdmin      Boolean       @default(false)
-    isValidated  Boolean       @default(false)
-    createdAt    DateTime      @default(now())
+  id                     String                   @id @default(uuid()) @db.Uuid()
+  email                  String                   @unique @db.VarChar(320)
+  password               String                   @db.VarChar(255)
+  name                   String                   @default("") @db.VarChar(32)
+  lastName               String                   @default("") @db.VarChar(32)
+  birthdate              DateTime?
+  publications           Publication[]
+  isAdmin                Boolean                  @default(false)
+  isValidated            Boolean                  @default(false)
+  createdAt              DateTime                 @default(now())
+  ReviewsGiven           Review[]                 @relation("ReviewsGiven")
+  ReviewsReceived        Review[]                 @relation("ReviewsReceived")
+  PublicationInteraction PublicationInteraction[]
 }
 
 model Publication {
-    // [TODO]: Debería ser UUID
-    id              Int      @id @default(autoincrement())
-    title           String
-    author          String
-    language        String
-    genres          String[] @db.VarChar(64)
-    bookState       String
-    description     String
-    type            String
-    price           Int
-    image           String
-    bookId          String // usa el id de google books
-    owner           User     @relation(fields: [ownerId], references: [id])
-    ownerId         Int
-    status          String @default("available")
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
+  id                     String                   @id @default(uuid()) @db.Uuid()
+  title                  String                   @db.VarChar(255)
+  author                 String                   @db.VarChar(255)
+  language               String                   @db.VarChar(32)
+  genres                 String[]                 @db.VarChar(64)
+  bookState              BookState
+  description            String
+  type                   PublicationType
+  status                 PublicationStatus        @default(AVAILABLE)
+  price                  Int
+  image                  String
+  bookId                 String                   @db.VarChar(64)
+  owner                  User                     @relation(fields: [ownerId], references: [id])
+  ownerId                String                   @db.Uuid()
+  available              Boolean                  @default(true)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  Review                 Review[]
+  PublicationInteraction PublicationInteraction[]
+}
+
+model Review {
+  id             String       @id @default(uuid()) @db.Uuid()
+  rating         Int
+  comment        String
+  user           User         @relation("ReviewsGiven", fields: [userId], references: [id])
+  userId         String       @db.Uuid()
+  reviewedUser   User         @relation("ReviewsReceived", fields: [reviewedUserId], references: [id])
+  reviewedUserId String       @db.Uuid()
+  publication    Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  publicationId  String?      @db.Uuid()
+  createdAt      DateTime     @default(now())
+}
+
+model PublicationInteraction {
+  id            String            @id @default(uuid()) @db.Uuid()
+  publication   Publication?      @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  publicationId String?           @db.Uuid()
+  user          User              @relation(fields: [userId], references: [id])
+  userId        String            @db.Uuid()
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @default(now()) @updatedAt
+  status        InteractionStatus @default(VIEWED)
+  emailSent     Boolean           @default(false)
+
+  @@unique([publicationId, userId])
+}
+
+enum BookState {
+  NEW
+  LIKE_NEW
+  USED
+  VERY_USED
+}
+
+enum PublicationType {
+  SELL
+  TRADE
+  SELL_TRADE
+}
+
+enum PublicationStatus {
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum InteractionStatus {
+  VIEWED
+  COMPLETED
 }
