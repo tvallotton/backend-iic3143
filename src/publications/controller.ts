@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import mailer, { MAIL_USER } from "../mailer";
+import mailer, { MAIL_USER } from "../mailer.js";
 
 export const JWT_SECRET = process.env["JWT_SECRET"] || Math.random() + "";
 const prisma = new PrismaClient();

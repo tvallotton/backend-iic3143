@@ -17,6 +17,9 @@
             "^.+\\.(ts|tsx)$": "ts-jest"
         },
         "collectCoverage": true,
+        "moduleNameMapper": {
+            "^(\\.{1,2}/.*)\\.js$": "$1"
+        },
         "moduleFileExtensions": [
             "js",
             "json",
