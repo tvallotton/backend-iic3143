@@ -1,7 +1,7 @@
 import express from 'express';
 import request from 'supertest';
 import userRouter from './controller';
-import errors from '../errors';
+import errors from '../errors.js';
 import { Prisma } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 

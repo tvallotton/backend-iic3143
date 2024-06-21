@@ -1,6 +1,6 @@
 import request from 'supertest';
 import express, { Express } from 'express';
-import { user } from './middleware';
+import { user } from './middleware.js';
 
 jest.mock('jsonwebtoken', () => ({
   verify: jest.fn(),
