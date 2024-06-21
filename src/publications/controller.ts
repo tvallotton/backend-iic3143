@@ -132,10 +132,10 @@ export const createPublication = (req: Request, res: Response) => {
       },
     })
     .then((publication) => {
-      res.json(publication);
+      res.status(201).json(publication);
     })
     .catch((error) => {
-      res.json({ error: error.message });
+      res.status(500).json({ error: error.message });
     });
 };
 

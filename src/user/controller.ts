@@ -103,9 +103,9 @@ router.get("/:id", user(), async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
+    const user: User & {birthdate: string} = req.body;
+    const pass = user.password;
     try {
-        const user: User = req.body;
-        const pass = user.password;
         const safePass =
             pass.match(/[A-Z]/) &&
             pass.match(/\d/) &&
@@ -124,7 +124,10 @@ router.post("/", async (req, res) => {
             return;
         }
         const created = await prisma.user.create({
-            data: user,
+            data: {
+                ...user,
+                birthdate: new Date(user.birthdate),
+            },
         });
         delete (created as any).password;
         const token = jwt.sign({ userId: created.id }, JWT_SECRET, {
