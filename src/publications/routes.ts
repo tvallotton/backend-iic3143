@@ -1,15 +1,15 @@
 import express from "express";
 import {
-    getAllPublications,
-    getPublicationById,
-    createPublication,
-    updatePublication,
-    deletePublication,
-    getGenres,
-    createInteraction,
-    getInteractions,
-    completeInteraction,
-} from "./controller.js";
+  getAllPublications,
+  getPublicationById,
+  createPublication,
+  updatePublication,
+  deletePublication,
+  getGenres,
+  createInteraction,
+  getInteractions,
+  completeInteraction,
+} from "./controller";
 import { user } from "../user/middleware";
 const router = express.Router();
 
