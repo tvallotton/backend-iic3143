@@ -9,8 +9,8 @@ import {
   createInteraction,
   getInteractions,
   completeInteraction,
-} from "./controller";
-import { user } from "../user/middleware";
+} from "./controller.js";
+import { user } from "../user/middleware.js";
 const router = express.Router();
 
 // FILTERS
