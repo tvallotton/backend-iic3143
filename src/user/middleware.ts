@@ -1,4 +1,4 @@
-import { PrismaClient, User } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { Response, NextFunction, Request } from "express";
 import jwt from "jsonwebtoken";
 import process from "process";
