@@ -61,9 +61,6 @@ export const getAllPublications = (req: Request, res: Response) => {
 
 export const getPublicationRecommendation = async (req: Request, res: Response) => {
   if (!req.user) return;
-  if (req.user.PublicationInteraction?.length === 0) {
-    return getAllPublications(req, res);
-  }
 
   const genres: { [key: string]: number; } = {};
 
