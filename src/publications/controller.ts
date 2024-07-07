@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import mailer, { MAIL_USER } from "../mailer.js";
-import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from "@prisma/client/runtime/library";
 
 export const JWT_SECRET = process.env["JWT_SECRET"] || Math.random() + "";
 const prisma = new PrismaClient();
@@ -324,7 +323,7 @@ export const createInteraction = async (req: Request, res: Response) => {
     const currentDate = new Date();
     const lastUpdate = new Date(interaction.updatedAt);
     const diff = currentDate.getTime() - lastUpdate.getTime();
-    
+
     // If the last email was sent more than 2 days ago, reset the emailSent flag
     if (diff > 1000 * 60 * 60 * 24 * 2) {
       interaction = await prisma.publicationInteraction.update({
