@@ -10,12 +10,14 @@ const prisma = new PrismaClient();
 
 
 
+
+
 declare global {
-    namespace Express {
-        interface Request {
-            user?: User;
-        }
+  namespace Express {
+    interface Request {
+      user?: Awaited<ReturnType<typeof fetchUser>>;
     }
+  }
 }
 // declare module 'express-serve-static-core' {
 //     interface Request {
@@ -25,17 +27,17 @@ declare global {
 // }
 
 interface Options {
-    /**
-     * If optional then the middleware won't respond with an error
-     * in case the user isn't authenticated. This way the handler
-     * can manage those cases. It defaults to false.
-     */
-    optional?: boolean;
-    /**
-     * It is used to respond with a forbidden status for
-     * admin only content. It defaults to false.
-     */
-    adminsOnly?: boolean;
+  /**
+   * If optional then the middleware won't respond with an error
+   * in case the user isn't authenticated. This way the handler
+   * can manage those cases. It defaults to false.
+   */
+  optional?: boolean;
+  /**
+   * It is used to respond with a forbidden status for
+   * admin only content. It defaults to false.
+   */
+  adminsOnly?: boolean;
 
 
 }
@@ -56,59 +58,65 @@ interface Options {
  * ```
  */
 export function user(options?: Options) {
-    return async function middleware(req: Request, res: Response, next: NextFunction) {
-        const header = req.headers["authorization"] || "";
-        const regex = header.match(/^Bearer (.+)$/) || [];
-        const token = regex[1];
+  return async function middleware(req: Request, res: Response, next: NextFunction) {
+    const header = req.headers["authorization"] || "";
+    const regex = header.match(/^Bearer (.+)$/) || [];
+    const token = regex[1];
 
-        if (typeof (token) === "string") {
-            try {
-                req.user = await fetchUser(token);
-                if (!req.user?.isAdmin && options?.adminsOnly) {
-                    return forbidden(res);
-                } else {
-                    return next();
-                }
-            } catch (e) {
-                return expired(res, next, options);
-            }
+    if (typeof (token) === "string") {
+      try {
+        req.user = await fetchUser(token);
+        if (!req.user?.isAdmin && options?.adminsOnly) {
+          return forbidden(res);
+        } else {
+          return next();
         }
-        return unauthenticated(res, next, options);
-    };
+      } catch (e) {
+        return expired(res, next, options);
+      }
+    }
+    return unauthenticated(res, next, options);
+  };
 }
 
 async function fetchUser(token: string) {
-    const { id } = jwt.verify(token, JWT_SECRET, {}) as { id: string; };
-    return await prisma.user.findFirst({ where: { id } }) || undefined;
+  const { id } = jwt.verify(token, JWT_SECRET, {}) as { id: string; };
+  return await prisma.user.findFirst({
+    where: { id }, include: {
+      PublicationInteraction: {
+        include: { publication: true }
+      }
+    }
+  }) || undefined;
 }
 
 // returns forbidden if admins or users only.
 function forbidden(res: Response) {
-    res.status(403)
-        .json({
-            message: "No tiene permiso para acceder a este recurso.",
-        });
+  res.status(403)
+    .json({
+      message: "No tiene permiso para acceder a este recurso.",
+    });
 
 }
 
 function expired(res: Response, next: NextFunction, options?: Options) {
-    if (options?.optional) {
-        next();
-    } else {
-        res.status(401)
-            .json({
-                message: "Su sesión ha expirado",
-            });
-    }
+  if (options?.optional) {
+    next();
+  } else {
+    res.status(401)
+      .json({
+        message: "Su sesión ha expirado",
+      });
+  }
 }
 
 function unauthenticated(res: Response, next: NextFunction, options?: Options,) {
-    if (options?.optional) {
-        next();
-    } else {
-        res.status(401)
-            .json({
-                message: "Tienes que ingresar sesión para acceder a este recurso.",
-            });
-    }
+  if (options?.optional) {
+    next();
+  } else {
+    res.status(401)
+      .json({
+        message: "Tienes que ingresar sesión para acceder a este recurso.",
+      });
+  }
 }

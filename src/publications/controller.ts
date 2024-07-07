@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import mailer, { MAIL_USER } from "../mailer.js";
+import { PrismaClientKnownRequestError, PrismaClientUnknownRequestError } from "@prisma/client/runtime/library";
 
 export const JWT_SECRET = process.env["JWT_SECRET"] || Math.random() + "";
 const prisma = new PrismaClient();
@@ -56,6 +57,36 @@ export const getAllPublications = (req: Request, res: Response) => {
     .catch((error) => {
       res.json({ error: error.message });
     });
+};
+
+
+export const getPublicationRecommendation = async (req: Request, res: Response) => {
+  if (!req.user) return;
+  if (req.user.PublicationInteraction?.length === 0) {
+    return getAllPublications(req, res);
+  }
+
+  const genres: { [key: string]: number; } = {};
+
+  for (const interaction of req.user.PublicationInteraction) {
+    for (const genre of interaction.publication?.genres || []) {
+      genres[genre] = (genres[genre] || 0) + 1;
+    }
+  }
+
+  const topGenres = Object.entries(genres).sort((x, y) => y[1] - x[1]).map(([x, _]) => x).slice(0, 2);
+  try {
+    res.json(await prisma.publication.findMany({
+      where: {
+        genres: {
+          hasSome: topGenres
+        }
+      },
+      take: 5
+    }));
+  } catch (error) {
+    res.json({ error: (error as Error).message });
+  }
 };
 
 export const getPublicationById = (req: Request, res: Response) => {
@@ -203,11 +234,11 @@ export const deletePublication = async (req: Request, res: Response) => {
     const publication = await prisma.publication.findUnique({
       where: { id },
     });
-      if (!publication) {
-        return res.status(404).json({
-            error: "The publication was not found."
-        })
-      }
+    if (!publication) {
+      return res.status(404).json({
+        error: "The publication was not found."
+      });
+    }
 
     if (publication.ownerId !== userId && !req.user?.isAdmin) {
       return res.status(403).json({
@@ -290,10 +321,10 @@ export const createInteraction = async (req: Request, res: Response) => {
       },
     });
 
-    const currentDate = new Date()
-    const lastUpdate = new Date(interaction.updatedAt)
-    const diff = currentDate.getTime() - lastUpdate.getTime()
-    console.log(diff, "dif")
+    const currentDate = new Date();
+    const lastUpdate = new Date(interaction.updatedAt);
+    const diff = currentDate.getTime() - lastUpdate.getTime();
+    
     // If the last email was sent more than 2 days ago, reset the emailSent flag
     if (diff > 1000 * 60 * 60 * 24 * 2) {
       interaction = await prisma.publicationInteraction.update({
