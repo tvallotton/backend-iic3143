@@ -165,6 +165,86 @@ describe('GET /publications/:id', () => {
     });
 });
 
+describe('GET /publications/recommendations', () => {
+    it('should return recommended publications to the user', async () => {
+        const mockPublications = [
+            {
+                id: "88b14b0e-32c8-4acc-bef8-6ebd8866b020",
+                title: 'Test Publication 1',
+                owner: {
+                    name: 'Test Owner 1',
+                },
+                genres: ['Genre1'],
+            },
+            {
+                id: "a94fa831-e00a-4cf3-9016-f815b89ad792",
+                title: 'Test Publication 2',
+                owner: {
+                    name: 'Test Owner 2',
+                },
+                genres: ['Genre2'],
+            },
+        ];
+        const publicationInteractions = [
+            {
+                title: 'Test Publication 1',
+                author: 'Test Author',
+                language: 'English',
+                genres: ['Genre1', 'Genre2'],
+                bookState: 'New',
+                description: 'This is a test publication',
+                type: 'Hardcover',
+                price: 0,
+                image: 'test_image.png',
+                bookId: '12345',
+                id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60",
+                owner: {
+                    name: 'Test Owner 1',
+                },
+            },
+            {
+                title: 'Test Publication 1',
+                author: 'Test Author',
+                language: 'English',
+                genres: ['Genre3', 'Genre2'],
+                bookState: 'New',
+                description: 'This is a test publication',
+                type: 'Hardcover',
+                price: 1000,
+                image: 'test_image.png',
+                bookId: '12345',
+                id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60",
+                owner: {
+                    name: 'Test Owner 1',
+                },
+            },
+        ];
+        mockJwtVerify.mockReturnValueOnce({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60" });
+        mockUserFindFirst.mockResolvedValue({ id: "c07019c1-9984-41f4-8e02-c84fb7ab3e60", PublicationInteraction: publicationInteractions });
+        mockPublicationFindMany.mockResolvedValue(mockPublications);
+        const response = await request(app).get('/publications/recommendations').set('Authorization', 'Bearer test_token');;
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([
+            {
+                id: "88b14b0e-32c8-4acc-bef8-6ebd8866b020",
+                title: 'Test Publication 1',
+                owner: {
+                    name: 'Test Owner 1',
+                },
+                genres: ['Genre1'],
+            },
+            {
+                id: "a94fa831-e00a-4cf3-9016-f815b89ad792",
+                title: 'Test Publication 2',
+                owner: {
+                    name: 'Test Owner 2',
+                },
+                genres: ['Genre2'],
+            },
+        ]);
+    });
+});
+
 describe('POST /publications', () => {
     it('should create a new publication', async () => {
         const mockPublication = {
